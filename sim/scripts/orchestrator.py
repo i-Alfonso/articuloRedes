@@ -78,7 +78,12 @@ def _make_run(sched: str, spatial: str, traffic: str, n_ues: int,
     }
 
 
-GROUP_KEY = {"a": "phase2_group_a", "b": "phase3_group_b"}
+GROUP_KEY = {
+    "a":  "phase2_group_a",
+    "b":  "phase3_group_b",
+    "ea": "phase4_extent_a",
+    "eb": "phase4_extent_b",
+}
 
 
 def generate_runs(cfg: dict, phase: str, group: str | None = None) -> list[dict]:
@@ -294,6 +299,8 @@ def phase_status(cfg: dict, _args: argparse.Namespace) -> None:
         ("phase1_validation", cfg["experiments"]["phase1_validation"]["output_dir"]),
         ("phase2_group_a",    cfg["experiments"]["phase2_group_a"]["output_dir"]),
         ("phase3_group_b",    cfg["experiments"]["phase3_group_b"]["output_dir"]),
+        ("phase4_extent_a",   cfg["experiments"].get("phase4_extent_a", {}).get("output_dir", "")),
+        ("phase4_extent_b",   cfg["experiments"].get("phase4_extent_b", {}).get("output_dir", "")),
     ]
     for name, reldir in phases:
         d = SIM_ROOT / reldir
@@ -350,8 +357,8 @@ Ejemplos:
     )
     p.add_argument("--phase",  required=True,
                    choices=["validate", "run", "analyze", "plot", "status"])
-    p.add_argument("--group",  choices=["a", "b"],
-                   help="Grupo del experimento (solo con --phase run)")
+    p.add_argument("--group",  choices=["a", "b", "ea", "eb"],
+                   help="Grupo del experimento (a|b = producción, ea|eb = extensión CQA/TBFQ)")
     p.add_argument("--jobs",   type=int,
                    default=max(1, multiprocessing.cpu_count() // 2),
                    help="Workers paralelos (default: mitad de núcleos del sistema)")

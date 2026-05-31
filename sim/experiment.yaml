@@ -448,6 +448,90 @@ experiments:
       H4_bearer:  "GBR tput: PSS > M-LWDF > PF en B2 y B5"
       H4_spatial: "Jain(PSS,D2) vs Jain(PF,D2) en T2 — B4/B5/B6"
 
+  # ---------------------------------------------------------------------------
+  # FASE 4 EXTENSIÓN: CQA y TBFQ — complemento de categoría (iii)
+  # Branch: extent
+  # ---------------------------------------------------------------------------
+  phase4_extent_a:
+    label:       "Fase 4a — Extensión Grupo A: CQA + TBFQ, heterogeneidad espacial"
+    description: "Robustez de H1/H2/H4: ¿siguen CQA y TBFQ el mismo patrón que M-LWDF/PSS?"
+    output_dir:  "results/raw/phase4_extent_a"
+    hypotheses:  [H1, H2, H4]
+    runs:        20
+    sim_time_s:  30
+    warmup_s:    5
+    schedulers:  [cqa, tbfq]
+    traffic:     homogeneous
+    note:        "Misma estructura que Grupo A — solo 2 schedulers nuevos"
+
+    scenarios:
+      A1e:
+        label:   "D1-N10 — Uniforme, 10 UEs, T1"
+        spatial: uniform
+        n_ues:   10
+      A2e:
+        label:   "D1-N20 — Uniforme, 20 UEs, T1"
+        spatial: uniform
+        n_ues:   20
+      A3e:
+        label:   "D1-N40 — Uniforme, 40 UEs, T1"
+        spatial: uniform
+        n_ues:   40
+      A4e:
+        label:   "D2-N10 — Clusterizada, 10 UEs, T1"
+        spatial: clustered
+        n_ues:   10
+      A5e:
+        label:   "D2-N20 — Clusterizada, 20 UEs, T1"
+        spatial: clustered
+        n_ues:   20
+      A6e:
+        label:   "D2-N40 — Clusterizada, 40 UEs, T1"
+        spatial: clustered
+        n_ues:   40
+
+    subtotal: 240   # 2 × 6 escenarios × 20 runs
+
+  phase4_extent_b:
+    label:       "Fase 4b — Extensión Grupo B: CQA + TBFQ, heterogeneidad de tráfico"
+    description: "Robustez de H3/H4: CQA y TBFQ bajo tráfico heterogéneo vs PF"
+    output_dir:  "results/raw/phase4_extent_b"
+    hypotheses:  [H3, H4]
+    runs:        20
+    sim_time_s:  30
+    warmup_s:    5
+    schedulers:  [cqa, tbfq]
+    traffic:     heterogeneous
+    note:        "Misma estructura que Grupo B — solo 2 schedulers nuevos"
+
+    scenarios:
+      B1e:
+        label:   "D1-N10 — Uniforme, 10 UEs, T2"
+        spatial: uniform
+        n_ues:   10
+      B2e:
+        label:   "D1-N20 — Uniforme, 20 UEs, T2"
+        spatial: uniform
+        n_ues:   20
+      B3e:
+        label:   "D1-N40 — Uniforme, 40 UEs, T2"
+        spatial: uniform
+        n_ues:   40
+      B4e:
+        label:   "D2-N10 — Clusterizada, 10 UEs, T2"
+        spatial: clustered
+        n_ues:   10
+      B5e:
+        label:   "D2-N20 — Clusterizada, 20 UEs, T2"
+        spatial: clustered
+        n_ues:   20
+      B6e:
+        label:   "D2-N40 — Clusterizada, 40 UEs, T2"
+        spatial: clustered
+        n_ues:   40
+
+    subtotal: 240   # 2 × 6 escenarios × 20 runs
+
 # -----------------------------------------------------------------------------
 # TOTALES
 # -----------------------------------------------------------------------------
@@ -455,17 +539,25 @@ totals:
   validation_runs:       10
   group_a_runs:          840
   group_b_runs:          840
+  extent_a_runs:         240
+  extent_b_runs:         240
   total_production:      1680
-  estimated_time_h:      "2.5"        # con 8 núcleos, ~40s/run con fading
-  disk_estimate_gb:      "8-10"       # ~5 MB DlRlcStats + FlowStats.csv por run
+  total_with_extent:     2160
+  estimated_time_h:      "2.5"        # grupos A+B con 8 núcleos
+  extent_time_h:         "0.8"        # extensión 480 runs con 8 núcleos
+  disk_estimate_gb:      "8-10"       # sin extensión
 
 execution_order:
   - phase: phase1_validation
     gate:  "TODOS los criterios de aceptación deben pasar"
   - phase: phase2_group_a
-    gate:  "Análisis exploratorio (análisis de varianzas, orden relativo) correcto"
+    gate:  "Análisis exploratorio correcto"
   - phase: phase3_group_b
     gate:  "Ambos grupos completos antes del análisis estadístico final"
+  - phase: phase4_extent_a
+    gate:  "Opcional — branch extent — robustez de H4"
+  - phase: phase4_extent_b
+    gate:  "Opcional — branch extent — robustez de H3/H4"
 
 # -----------------------------------------------------------------------------
 # ANÁLISIS Y FIGURAS

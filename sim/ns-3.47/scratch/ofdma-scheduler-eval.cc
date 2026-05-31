@@ -62,7 +62,7 @@ main(int argc, char* argv[])
     std::string outputDir  = "results/raw/default";
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("scheduler",  "Scheduler: rr|bet|mt|tta|pf|mlwdf|pss",    scheduler);
+    cmd.AddValue("scheduler",  "Scheduler: rr|bet|mt|tta|pf|mlwdf|pss|cqa|tbfq", scheduler);
     cmd.AddValue("nUEs",       "Number of UEs (10, 20 or 40)",             nUEs);
     cmd.AddValue("spatial",    "Spatial distribution: uniform|clustered",  spatial);
     cmd.AddValue("traffic",    "Traffic model: homogeneous|heterogeneous", traffic);
@@ -74,7 +74,7 @@ main(int argc, char* argv[])
     RngSeedManager::SetSeed(12345);
     RngSeedManager::SetRun(runId);
 
-    // Taxonomía Capozzi 2-3-2
+    // Taxonomía Capozzi 2-3-2 + extensión (cqa, tbfq)
     static const std::map<std::string, std::string> schedulerTypes = {
         {"rr",    "ns3::RrFfMacScheduler"},
         {"bet",   "ns3::FdBetFfMacScheduler"},
@@ -83,9 +83,11 @@ main(int argc, char* argv[])
         {"pf",    "ns3::PfFfMacScheduler"},
         {"mlwdf", "ns3::MlwdfFfMacScheduler"},
         {"pss",   "ns3::PssFfMacScheduler"},
+        {"cqa",   "ns3::CqaFfMacScheduler"},
+        {"tbfq",  "ns3::FdTbfqFfMacScheduler"},
     };
     NS_ABORT_MSG_IF(schedulerTypes.find(scheduler) == schedulerTypes.end(),
-                    "Unknown scheduler '" << scheduler << "'. Use: rr bet mt tta pf mlwdf pss");
+                    "Unknown scheduler '" << scheduler << "'. Use: rr bet mt tta pf mlwdf pss cqa tbfq");
     NS_ABORT_MSG_IF(spatial != "uniform" && spatial != "clustered",
                     "Unknown spatial '" << spatial << "'. Use: uniform clustered");
     NS_ABORT_MSG_IF(traffic != "homogeneous" && traffic != "heterogeneous",
