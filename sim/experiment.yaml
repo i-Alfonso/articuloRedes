@@ -1,0 +1,561 @@
+# =============================================================================
+# experiment.yaml — Fuente de verdad del experimento completo
+# Evaluación de paradigmas de scheduling OFDMA en ns-3.47
+# Proyecto de Maestría — Redes — BUAP 2026
+# =============================================================================
+# Uso:  python3 scripts/orchestrator.py --phase <fase>
+# Docs: dev-plan/  |  Decisiones: docs/decisiones.md
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# METADATOS DEL PROYECTO
+# -----------------------------------------------------------------------------
+project:
+  title: "Evaluación de paradigmas de scheduling en sistemas OFDMA bajo tráfico y condiciones espaciales heterogéneas"
+  research_question: "¿Cómo afectan la heterogeneidad espacial y la heterogeneidad del tráfico al desempeño estructural de distintos paradigmas de scheduling en sistemas OFDMA?"
+  reference: "Capozzi et al. (2012) — DL Packet Scheduling in LTE, IEEE Comm. Surveys & Tutorials"
+  taxonomy: "Capozzi 5 categorías — se usan activas: (i), (ii), (iii)"
+  deliverable: "Paper formato IEEE: Intro · Marco teórico · Estado del arte · Métodos · Resultados · Discusión · Conclusiones"
+
+hypotheses:
+  H1: "Los schedulers orientados a throughput presentan degradación no lineal de fairness bajo distribuciones espaciales heterogéneas"
+  H2: "La heterogeneidad espacial tiene mayor impacto sobre fairness que el número total de usuarios"
+  H3: "Los schedulers balanceados pierden eficiencia espectral cuando coexisten múltiples tipos de tráfico con distintos requisitos de QoS"
+  H4: "Los schedulers híbridos mejoran el compromiso fairness-throughput, aunque introducen mayor complejidad de coordinación"
+
+# -----------------------------------------------------------------------------
+# ENTORNO — RUTAS (relativas a sim/)
+# -----------------------------------------------------------------------------
+paths:
+  ns3_dir:         "ns-3.47"
+  ns3_binary:      "ns-3.47/build/scratch/ns3.47-ofdma-scheduler-eval-default"
+  scripts_dir:     "scripts"
+  results_raw:     "results/raw"
+  results_proc:    "results/processed"
+  results_figures: "results/figures"
+
+# -----------------------------------------------------------------------------
+# PARÁMETROS FÍSICOS FIJOS (todos los escenarios)
+# -----------------------------------------------------------------------------
+physical:
+  enb_count:              1
+  cell_radius_m:          500
+  ue_disc_radius_m:       490          # margen 10 m respecto al límite de celda
+  frequency_dl_ghz:       2.1
+  bandwidth_mhz:          10
+  resource_blocks:        50
+  enb_tx_power_dbm:       46           # Macro eNB estándar — fix ITER 2 (default 30 dBm cubría solo 302 m)
+  path_loss_model:        "LogDistancePropagationLossModel"
+  path_loss_exponent:     3.5          # urbano
+  path_loss_ref_dist_m:   1
+  path_loss_ref_loss_db:  46.7
+  fading:                 "Rayleigh"
+  cqi_period_ms:          1            # dinámico, full-bandwidth, 1 TTI
+  mobility:               "static"     # fading proporciona variación temporal
+  epc_enabled:            true
+  ip_e2e:                 true
+
+# Parámetros de ejecución
+run:
+  sim_time_s:          30
+  warmup_s:            5               # descartado en análisis
+  runs_per_config:     20              # para IC al 95%
+  rng_seed:            12345           # base; variar con RngSeedManager::SetRun(run_id)
+  run_id_range:        [1, 20]
+
+# -----------------------------------------------------------------------------
+# SCHEDULERS — Taxonomía Capozzi 2-3-2
+# -----------------------------------------------------------------------------
+# Categorías:
+#   (i)   channel-unaware           → 2 alg: RR, BET
+#   (ii)  channel-aware/qos-unaware → 3 alg: MT, TTA, PF
+#   (iii) channel-aware/qos-aware   → 2 alg: M-LWDF, PSS
+# Bases requeridas por proyecto: RR ✅  MT ✅  PF ✅
+# -----------------------------------------------------------------------------
+schedulers:
+
+  rr:
+    name:        "Round Robin"
+    ns3_class:   "ns3::RrFfMacScheduler"
+    category:    "i_channel_unaware"
+    is_baseline: true
+    hypotheses:  [H1, H2]
+    description: "Equidad de tiempo — referencia inferior de throughput"
+
+  bet:
+    name:        "Blind Equal Throughput"
+    ns3_class:   "ns3::FdBetFfMacScheduler"
+    category:    "i_channel_unaware"
+    is_baseline: false
+    hypotheses:  [H1, H2]
+    description: "Equidad de throughput histórico; más estable que RR bajo clustering"
+
+  mt:
+    name:        "Maximum Throughput (TD)"
+    ns3_class:   "ns3::TdMtFfMacScheduler"
+    category:    "ii_channel_aware_qos_unaware"
+    is_baseline: true
+    hypotheses:  [H1, H2]
+    description: "Todos los RBs al mejor CQI del TTI — máxima eficiencia, starvation severo"
+    note:        "TD (Time Domain) = MT canónico de Capozzi Figs 8-10. FD-MT descartado."
+
+  tta:
+    name:        "Throughput To Average"
+    ns3_class:   "ns3::TtaFfMacScheduler"
+    category:    "ii_channel_aware_qos_unaware"
+    is_baseline: false
+    hypotheses:  [H1, H2]
+    description: "Ventaja relativa del RB en el TTI; intermedio entre MT y PF"
+
+  pf:
+    name:        "Proportional Fair"
+    ns3_class:   "ns3::PfFfMacScheduler"
+    category:    "ii_channel_aware_qos_unaware"
+    is_baseline: true
+    hypotheses:  [H1, H2, H3, H4]
+    description: "Balance throughput-fairness — referencia central en todas las comparaciones"
+    beta:        0.99
+
+  mlwdf:
+    name:        "Modified Largest Weighted Delay First"
+    ns3_class:   "ns3::MlwdfFfMacScheduler"
+    category:    "iii_channel_aware_qos_aware"
+    is_baseline: false
+    hypotheses:  [H3]
+    description: "Delay-weighted QoS — flujos RT con presupuesto de delay; BE con métrica PF"
+    implementation: "custom"           # implementado e integrado en src/lte/model/
+
+  pss:
+    name:        "Priority Set Scheduler"
+    ns3_class:   "ns3::PssFfMacScheduler"
+    category:    "iii_channel_aware_qos_aware"
+    is_baseline: false
+    hypotheses:  [H3, H4]
+    description: "Híbrido TDPS + FDPS — prioriza GBR sobre nGBR con two-level scheduling"
+    ns3_attributes:
+      nMux:              10
+      PssFdSchedulerType: "PFsch"
+
+# -----------------------------------------------------------------------------
+# DISTRIBUCIONES ESPACIALES
+# -----------------------------------------------------------------------------
+spatial:
+
+  uniform:
+    label:        "D1 — Uniforme"
+    ns3_param:    "uniform"
+    description:  "UEs en disco uniforme de 490 m centrado en eNB"
+    allocator:    "UniformDiscPositionAllocator"
+    radius_m:     490
+
+  clustered:
+    label:        "D2 — Clusterizada (cerca / medio / lejos)"
+    ns3_param:    "clustered"
+    description:  "3 clusters a distancias DISTINTAS del eNB — crea heterogeneidad real de canal por distancia"
+    rationale:    "Requerimiento explícito del proyecto: 'condiciones de canal heterogéneas (distancia al eNodeB)'"
+    cluster_count: 3
+    cluster_radius_m: 70
+    clusters:
+      C1_near:
+        center_m:   100
+        angle_deg:  0
+        coords:     [100.0, 0.0]
+        ue_range_m: "30 – 170"
+        channel:    "alto SINR"
+      C2_mid:
+        center_m:   250
+        angle_deg:  120
+        coords:     [-125.0, 216.0]
+        ue_range_m: "180 – 320"
+        channel:    "SINR moderado"
+      C3_far:
+        center_m:   400
+        angle_deg:  240
+        coords:     [-200.0, -346.0]
+        ue_range_m: "330 – 470"
+        channel:    "bajo SINR (límite de cobertura)"
+    expected_behavior:
+      MT:    "Monopoliza C1 (near) — starvation severo en C3 (far) — H1 muy visible"
+      PF:    "Intenta balancear los 3 clusters — costo en eficiencia para UEs lejanos"
+      RR:    "Tiempo igual para todos — throughput muy bajo en C3"
+      BET:   "Iguala throughput — asigna mucho más tiempo a C3 para compensar"
+
+# -----------------------------------------------------------------------------
+# MODELOS DE TRÁFICO
+# -----------------------------------------------------------------------------
+traffic:
+
+  homogeneous:
+    label:       "T1 — Homogéneo Best-Effort"
+    ns3_param:   "homogeneous"
+    description: "Todos los UEs con flujo UDP CBR desde PGW"
+    flow_type:   "UDP CBR"
+    packet_size_bytes: 1250
+    interval_ms:  10.0              # 100 pkt/s → ~1 Mbps por UE
+    bearer:       "NGBR_DEFAULT"
+    qci:          9
+
+  heterogeneous:
+    label:       "T2 — Heterogéneo (Video + Baja Latencia + Best-Effort)"
+    ns3_param:   "heterogeneous"
+    description: "UEs divididos 1/3 : 1/3 : 1/3 por tipo de tráfico"
+    flows:
+      video:
+        fraction:          "primer tercio (índices 0..N/3-1)"
+        bitrate_mbps:      1.5
+        packet_size_bytes: 1000
+        interval_ms:       5.3
+        bearer:            "NGBR_VIDEO_TCP_DEFAULT"
+        qci:               3
+        delay_budget_ms:   300
+        plr_target:        1.0e-6
+        lcid:              4          # dedicated bearer
+
+      low_latency:
+        fraction:          "segundo tercio (índices N/3..2N/3-1)"
+        bitrate_kbps:      64
+        packet_size_bytes: 160
+        interval_ms:       20.0
+        bearer:            "GBR_GAMING"
+        gbr_dl_bps:        64000
+        mbr_dl_bps:        100000
+        qci:               4
+        delay_budget_ms:   50
+        plr_target:        1.0e-3
+        lcid:              4          # dedicated GBR bearer
+
+      best_effort:
+        fraction:          "último tercio (índices 2N/3..N-1)"
+        bitrate_mbps:      1.0
+        packet_size_bytes: 1250
+        interval_ms:       10.0
+        bearer:            "NGBR_DEFAULT"
+        qci:               9
+        lcid:              3          # default bearer
+
+# -----------------------------------------------------------------------------
+# MÉTRICAS
+# -----------------------------------------------------------------------------
+metrics:
+  primary:
+    - id: cell_throughput_mbps
+      desc: "Throughput agregado de celda [Mbps]"
+      source: "DlRlcStats.txt → suma RxBytes / duration × 8 / 1e6"
+      hypotheses: [H1, H2, H3]
+
+    - id: jain_index
+      desc: "Índice de Jain J = (Σxᵢ)² / (n·Σxᵢ²) sobre throughput por UE"
+      note: "Incluir UEs con 0 throughput (starved) vía --nues para comparación justa entre schedulers"
+      hypotheses: [H1, H2, H4]
+
+    - id: mean_delay_ms
+      desc: "Delay medio del bearer DL [ms]"
+      source: "DlRlcStats.txt → columna delay (segundos) × 1000"
+      hypotheses: [H3]
+
+    - id: plr
+      desc: "Packet Loss Ratio = (nTxPDUs - nRxPDUs) / nTxPDUs"
+      hypotheses: [H3]
+
+  secondary:
+    - id: per_bearer_throughput_mbps
+      desc: "Throughput separado LCID3 (BE) vs LCID4 (GBR) — solo escenarios T2"
+      hypotheses: [H3, H4]
+
+    - id: per_ue_throughput_mbps
+      desc: "Vector de throughput por UE — para detectar starvation"
+      hypotheses: [H1, H2]
+
+  statistics:
+    runs:             20
+    confidence:       0.95
+    t_df:             19              # n-1 = 19
+    t_critical:       2.093           # t(0.025, 19)
+    pairwise_test:    "Welch t-test"  # no asume igual varianza
+    alpha:            0.05
+
+# -----------------------------------------------------------------------------
+# EXPERIMENTOS — 3 FASES
+# -----------------------------------------------------------------------------
+
+# Convención de nombres de directorio de resultados:
+#   {scheduler}_{spatial}_{traffic}_n{N}_r{RR}
+#   Ejemplo: pf_uniform_homogeneous_n20_r03
+
+experiments:
+
+  # ---------------------------------------------------------------------------
+  # FASE 1: Validación — no cuenta para paper; debe pasar antes de continuar
+  # ---------------------------------------------------------------------------
+  phase1_validation:
+    label:       "Fase 1 — Validación"
+    description: "Confirmar que todos los schedulers producen resultados coherentes con Capozzi"
+    output_dir:  "results/raw/phase1_validation"
+    runs:        1                    # 1 run por scheduler, no estadístico
+    sim_time_s:  30
+    warmup_s:    5
+    gate:        "Debe pasar ANTES de lanzar Fase 2"
+
+    scenarios:
+      val_homo_uniform:
+        label:      "T1 homogéneo, D1 uniforme, N=20"
+        schedulers: [rr, bet, mt, tta, pf, mlwdf, pss]
+        spatial:    uniform
+        traffic:    homogeneous
+        n_ues:      20
+        # Calibrados con run real 2026-05-28: N=20, D1, T1, simTime=30s
+        acceptance_criteria:
+          throughput_order:       "pf >= rr > mt"  # PF lidera con CBR — MT starvation reduce su tput total
+          jain_order:             "bet > pss >= rr >= pf >> mt"
+          jain_pf_min:            0.70    # observado 0.76 — canal heterogéneo reduce Jain en N=20
+          jain_mt_max:            0.45    # observado 0.40 — starvation de 12/20 UEs
+          jain_bet_min:           0.95    # observado 1.00 — BET iguala throughput por diseño
+          ues_served_balanced:    20      # RR, BET, PF, M-LWDF, PSS deben servir los 20 UEs
+          ues_served_mt_max:      15      # MT/TTA starvan usuarios — es el fenómeno H1
+
+      val_hetero_uniform:
+        label:      "T2 heterogéneo, D1 uniforme, N=20"
+        schedulers: [pf, mlwdf, pss]
+        spatial:    uniform
+        traffic:    heterogeneous
+        n_ues:      20
+        # Calibrados con run real 2026-05-28: N=20, D1, T2, simTime=30s
+        acceptance_criteria:
+          gbr_tput_order:       "pss > mlwdf > pf"   # PSS(6.65) > M-LWDF(6.13) > PF(3.70)
+          gbr_tput_pf_min:      3.0     # observado 3.70 Mbps
+          gbr_tput_mlwdf_min:   5.0     # observado 6.13 Mbps
+          gbr_tput_pss_min:     5.5     # observado 6.65 Mbps
+          be_tput_mlwdf_lt_pf:  true    # M-LWDF redirige BE→GBR (observado 2.23 < 3.81)
+          be_tput_pss_lt_mlwdf: true    # PSS redirige aún más (observado 1.68 < 2.23)
+
+    total_runs: 10   # 7 + 3 escenarios × 1 run
+
+  # ---------------------------------------------------------------------------
+  # FASE 2: Grupo A — Heterogeneidad Espacial (H1 + H2)
+  # ---------------------------------------------------------------------------
+  phase2_group_a:
+    label:       "Fase 2 — Grupo A: Heterogeneidad Espacial"
+    description: "Evalúa impacto de distribución espacial y número de UEs sobre fairness y throughput"
+    output_dir:  "results/raw/phase2_group_a"
+    hypotheses:  [H1, H2]
+    runs:        20
+    sim_time_s:  30
+    warmup_s:    5
+    schedulers:  [rr, bet, mt, tta, pf, mlwdf, pss]
+    traffic:     homogeneous
+    gate:        "Completar análisis exploratorio antes de lanzar Fase 3"
+
+    scenarios:
+      A1:
+        label:     "D1-N10 — Uniforme, 10 UEs"
+        spatial:   uniform
+        n_ues:     10
+        runs_here: 140   # 7 × 20
+
+      A2:
+        label:     "D1-N20 — Uniforme, 20 UEs"
+        spatial:   uniform
+        n_ues:     20
+        runs_here: 140
+
+      A3:
+        label:     "D1-N40 — Uniforme, 40 UEs"
+        spatial:   uniform
+        n_ues:     40
+        runs_here: 140
+
+      A4:
+        label:     "D2-N10 — Clusterizada, 10 UEs"
+        spatial:   clustered
+        n_ues:     10
+        runs_here: 140
+
+      A5:
+        label:     "D2-N20 — Clusterizada, 20 UEs"
+        spatial:   clustered
+        n_ues:     20
+        runs_here: 140
+
+      A6:
+        label:     "D2-N40 — Clusterizada, 40 UEs"
+        spatial:   clustered
+        n_ues:     40
+        runs_here: 140
+
+    subtotal: 840   # 7 sched × 6 escenarios × 20 runs
+
+    key_comparisons:
+      H1: "MT Jain(D2) vs MT Jain(D1) — se espera degradación no lineal en clusterizado"
+      H2: "|ΔJain(D1→D2)| vs |ΔJain(N10→N40)| en PF — se espera |Δespacial| > |ΔN|"
+
+  # ---------------------------------------------------------------------------
+  # FASE 3: Grupo B — Heterogeneidad de Tráfico (H3 + H4)
+  # ---------------------------------------------------------------------------
+  phase3_group_b:
+    label:       "Fase 3 — Grupo B: Heterogeneidad de Tráfico"
+    description: "Evalúa impacto del tráfico heterogéneo en eficiencia y QoS bajo distintas cargas y distribuciones"
+    output_dir:  "results/raw/phase3_group_b"
+    hypotheses:  [H3, H4]
+    runs:        20
+    sim_time_s:  30
+    warmup_s:    5
+    schedulers:  [rr, bet, mt, tta, pf, mlwdf, pss]
+    traffic:     heterogeneous
+    note:        "Diseño simétrico con Grupo A — N varía {10,20,40} × spatial {uniform,clustered}"
+
+    scenarios:
+      B1:
+        label:     "D1-N10 — Uniforme, 10 UEs, T2"
+        spatial:   uniform
+        n_ues:     10
+        runs_here: 140
+
+      B2:
+        label:     "D1-N20 — Uniforme, 20 UEs, T2"
+        spatial:   uniform
+        n_ues:     20
+        runs_here: 140
+
+      B3:
+        label:     "D1-N40 — Uniforme, 40 UEs, T2"
+        spatial:   uniform
+        n_ues:     40
+        runs_here: 140
+
+      B4:
+        label:     "D2-N10 — Clusterizada, 10 UEs, T2"
+        spatial:   clustered
+        n_ues:     10
+        runs_here: 140
+
+      B5:
+        label:     "D2-N20 — Clusterizada, 20 UEs, T2"
+        spatial:   clustered
+        n_ues:     20
+        runs_here: 140
+
+      B6:
+        label:     "D2-N40 — Clusterizada, 40 UEs, T2"
+        spatial:   clustered
+        n_ues:     40
+        runs_here: 140
+
+    subtotal: 840   # 7 × 6 escenarios × 20 runs
+
+    key_comparisons:
+      H3_vs_N:    "PF tput(T1=A1/A2/A3) vs PF tput(T2=B1/B2/B3) — efecto de carga"
+      H3_delay:   "Delay GBR: M-LWDF vs PF en B2 — se espera M-LWDF < PF"
+      H4_bearer:  "GBR tput: PSS > M-LWDF > PF en B2 y B5"
+      H4_spatial: "Jain(PSS,D2) vs Jain(PF,D2) en T2 — B4/B5/B6"
+
+# -----------------------------------------------------------------------------
+# TOTALES
+# -----------------------------------------------------------------------------
+totals:
+  validation_runs:       10
+  group_a_runs:          840
+  group_b_runs:          840
+  total_production:      1680
+  estimated_time_h:      "2.5"        # con 8 núcleos, ~40s/run con fading
+  disk_estimate_gb:      "8-10"       # ~5 MB DlRlcStats + FlowStats.csv por run
+
+execution_order:
+  - phase: phase1_validation
+    gate:  "TODOS los criterios de aceptación deben pasar"
+  - phase: phase2_group_a
+    gate:  "Análisis exploratorio (análisis de varianzas, orden relativo) correcto"
+  - phase: phase3_group_b
+    gate:  "Ambos grupos completos antes del análisis estadístico final"
+
+# -----------------------------------------------------------------------------
+# ANÁLISIS Y FIGURAS
+# -----------------------------------------------------------------------------
+analysis:
+  processed_master: "results/processed/master.csv"
+  processed_stats:  "results/processed/stats.csv"
+  figures_dir:      "results/figures"
+
+  figures:
+    F1:
+      title:    "Throughput de celda vs N usuarios (D1 uniforme)"
+      x:        "N usuarios [10, 20, 40]"
+      y:        "Throughput celda [Mbps]"
+      curves:   [rr, bet, mt, tta, pf, mlwdf, pss]
+      data:     "Grupo A, D1"
+      hypotheses: [H1]
+
+    F2:
+      title:    "Jain index vs N usuarios — distribución uniforme"
+      x:        "N usuarios [10, 20, 40]"
+      y:        "Jain index"
+      curves:   [rr, bet, mt, tta, pf, mlwdf, pss]
+      data:     "Grupo A, D1"
+      hypotheses: [H1, H2]
+
+    F3:
+      title:    "Jain index vs N usuarios — distribución clusterizada"
+      x:        "N usuarios [10, 20, 40]"
+      y:        "Jain index"
+      curves:   [rr, bet, mt, tta, pf, mlwdf, pss]
+      data:     "Grupo A, D2"
+      hypotheses: [H1, H2]
+
+    F4:
+      title:    "Jain index: D1 vs D2 fijando N=20"
+      x:        "Distribución espacial [uniform, clustered]"
+      y:        "Jain index"
+      curves:   [rr, bet, mt, tta, pf, mlwdf, pss]
+      data:     "A2 vs A5"
+      hypotheses: [H2]
+
+    F5:
+      title:    "Throughput celda: T1 vs T2 (N=20, D1)"
+      x:        "Tipo de tráfico [homogeneous, heterogeneous]"
+      y:        "Throughput celda [Mbps]"
+      curves:   [rr, bet, mt, tta, pf, mlwdf, pss]
+      data:     "A2 vs B1"
+      hypotheses: [H3]
+
+    F6:
+      title:    "Throughput por tipo de bearer (T2, D1, N=20)"
+      x:        "Scheduler"
+      y:        "Throughput [Mbps]"
+      series:   ["BE (LCID3)", "GBR (LCID4)"]
+      data:     "B1"
+      hypotheses: [H3, H4]
+
+    F7:
+      title:    "Delay medio: QoS-aware vs PF bajo T2"
+      x:        "Distribución [D1, D2]"
+      y:        "Delay medio [ms]"
+      curves:   [pf, mlwdf, pss]
+      data:     "B1, B2"
+      hypotheses: [H3, H4]
+
+    F8:
+      title:    "Jain index: híbrido vs PF bajo tráfico heterogéneo"
+      x:        "Distribución [D1, D2]"
+      y:        "Jain index"
+      curves:   [pf, mlwdf, pss]
+      data:     "B1, B2"
+      hypotheses: [H4]
+
+  welch_tests:
+    - comparison: "Jain(MT, D2) vs Jain(MT, D1)"
+      hypothesis: H1
+      expected:   "D2 < D1, p < 0.05"
+    - comparison: "|ΔJain_D1→D2| vs |ΔJain_N10→N40| en PF"
+      hypothesis: H2
+      expected:   "espacial > N"
+    - comparison: "Throughput(PF, T1) vs Throughput(PF, T2)"
+      hypothesis: H3
+      expected:   "T2 < T1, p < 0.05"
+    - comparison: "Delay_GBR(M-LWDF, T2) vs Delay_GBR(PF, T2)"
+      hypothesis: H3
+      expected:   "M-LWDF < PF"
+    - comparison: "Delay_GBR(PSS, T2) vs Delay_GBR(PF, T2)"
+      hypothesis: "H3+H4"
+      expected:   "PSS < PF"
+    - comparison: "Jain(PSS, D2, T2) vs Jain(PF, D2, T2)"
+      hypothesis: H4
+      expected:   "PSS >= PF"

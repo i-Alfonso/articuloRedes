@@ -1,0 +1,56 @@
+# =============================================================================
+# OFDMA Scheduler Evaluation — .gitignore
+# =============================================================================
+
+# -------------------------
+# macOS
+# -------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# -------------------------
+# ns-3.47 — excluir TODA la instalación, conservar solo nuestros archivos
+# La instalación estándar de ns-3.47 está disponible en https://www.nsnam.org
+# -------------------------
+
+# Excluir todo ns-3.47
+sim/ns-3.47/*
+
+# Conservar nuestro script principal de simulación
+!sim/ns-3.47/scratch/
+sim/ns-3.47/scratch/*
+!sim/ns-3.47/scratch/ofdma-scheduler-eval.cc
+
+# Conservar nuestro scheduler M-LWDF personalizado
+!sim/ns-3.47/src/
+sim/ns-3.47/src/*
+!sim/ns-3.47/src/lte/
+sim/ns-3.47/src/lte/*
+!sim/ns-3.47/src/lte/model/
+sim/ns-3.47/src/lte/model/*
+!sim/ns-3.47/src/lte/model/mlwdf-ff-mac-scheduler.cc
+!sim/ns-3.47/src/lte/model/mlwdf-ff-mac-scheduler.h
+!sim/ns-3.47/src/lte/model/fading-traces/
+sim/ns-3.47/src/lte/model/fading-traces/*
+!sim/ns-3.47/src/lte/model/fading-traces/fading_trace_EPA_3kmph.fad
+
+# -------------------------
+# Resultados crudos de simulación (12 GB, regenerables con orchestrator)
+# -------------------------
+sim/results/raw/
+
+# -------------------------
+# Artefactos de compilación
+# -------------------------
+*.o
+*.a
+*.so
