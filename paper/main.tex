@@ -51,7 +51,7 @@
 Los schedulers de enlace descendente en redes OFDMA deben equilibrar simultáneamente
 eficiencia espectral, equidad y calidad de servicio (QoS) bajo condiciones heterogéneas
 de canal y tráfico. Este trabajo presenta una evaluación sistemática de siete paradigmas
-de scheduling —clasificados según la taxonomía de Capozzi et al.~\cite{capozzi2012}—
+de scheduling ---clasificados según la taxonomía de Capozzi et al.~\cite{capozzi2012}---
 mediante 1{,}680 simulaciones en ns-3.47 con módulo LTE. Se evalúan cuatro hipótesis
 que relacionan la distribución espacial de usuarios, el número de usuarios, el tipo de
 tráfico y el rendimiento de cada scheduler. Los resultados muestran que los schedulers
@@ -79,8 +79,8 @@ maximizando simultáneamente múltiples objetivos que son inherentemente conflic
 maximizar el throughput de celda, mantener la equidad entre usuarios, cumplir requisitos
 de QoS por flujo y minimizar el retardo \cite{capozzi2012}.
 
-Los schedulers clásicos —Round Robin (RR), Maximum Throughput (MT) y Proportional
-Fair (PF)— son bien estudiados en condiciones homogéneas \cite{pf1999}. Sin embargo,
+Los schedulers clásicos ---Round Robin (RR), Maximum Throughput (MT) y Proportional
+Fair (PF)--- son bien estudiados en condiciones homogéneas \cite{pf1999}. Sin embargo,
 escenarios reales presentan usuarios distribuidos de forma no uniforme respecto a la
 antena (heterogeneidad espacial) y tráfico con requisitos de QoS heterogéneos
 (video GBR, gaming GBR, best-effort). La literatura carece de evaluaciones sistemáticas
@@ -152,12 +152,12 @@ $\bar{r}_i(t)$ el throughput histórico promedio.
 \textbf{M-LWDF}: $m_i(t) = -\log(\delta_i) \cdot D_i(t) \cdot r_i(t) / \bar{r}_i(t)$
 donde $\delta_i$ es la PLR objetivo y $D_i(t)$ el delay HOL \cite{mlwdf2001}.
 
-\textbf{PSS}: asignación en dos etapas — TDPS prioriza UEs GBR con delay elevado;
+\textbf{PSS}: asignación en dos etapas --- TDPS prioriza UEs GBR con delay elevado;
 FDPS aplica PF dentro del grupo seleccionado \cite{pss2006}.
 
 \begin{table}[t]
   \centering
-  \caption{Schedulers evaluados — esquema 2-3-2 de la taxonomía Capozzi}
+  \caption{Schedulers evaluados --- esquema 2-3-2 de la taxonomía Capozzi}
   \label{tab:schedulers}
   \footnotesize
   \begin{tabular}{@{}llll@{}}
@@ -234,17 +234,17 @@ diferenciadas (C1=100~m, C2=250~m, C3=400~m), y FlowMonitor para métricas E2E.
 
 \textbf{Distribución espacial:}
 \begin{itemize}
-  \item \textbf{D1 — Uniforme}: UEs distribuidos uniformemente en disco de radio 490~m.
-  \item \textbf{D2 — Clusterizada}: 3 clusters a distancias diferenciadas del eNB
+  \item \textbf{D1 --- Uniforme}: UEs distribuidos uniformemente en disco de radio 490~m.
+  \item \textbf{D2 --- Clusterizada}: 3 clusters a distancias diferenciadas del eNB
         (C1=100~m, C2=250~m, C3=400~m), radio de cluster 70~m, ángulos separados 120°.
         Implementa la condición de canal heterogéneo explicitamente requerida.
 \end{itemize}
 
 \textbf{Tipo de tráfico:}
 \begin{itemize}
-  \item \textbf{T1 — Homogéneo}: todos los UEs con tráfico full-buffer (OnOff a 10~Mbps).
+  \item \textbf{T1 --- Homogéneo}: todos los UEs con tráfico full-buffer (OnOff a 10~Mbps).
         Capacidad ofrecida $\gg$ capacidad de celda ($\approx$20~Mbps), garantizando saturación.
-  \item \textbf{T2 — Heterogéneo}: asignación interleaved ($u \bmod 3$): video GBR (QCI-4,
+  \item \textbf{T2 --- Heterogéneo}: asignación interleaved ($u \bmod 3$): video GBR (QCI-4,
         1.5~Mbps), gaming GBR (QCI-3, 64~kbps), best-effort full-buffer. La asignación
         interleaved garantiza que cada cluster recibe los tres tipos mezclados,
         eliminando correlación posición-tráfico.
@@ -285,7 +285,7 @@ severa ($J=0.116$, solo 6/20 UEs activos).
 
 \begin{table}[t]
   \centering
-  \caption{Métricas de referencia — N=20, D1, T1 (media ± IC 95\%)}
+  \caption{Métricas de referencia --- N=20, D1, T1 (media ± IC 95\%)}
   \label{tab:referencia}
   \footnotesize
   \begin{tabular}{@{}lcccc@{}}
@@ -317,7 +317,7 @@ a 0.729 (D2) con N=20.
 La Fig.~\ref{fig:f1} muestra el throughput bajo D1. MT permanece estable
 ($\approx$11~Mbps) independiente de N porque siempre encuentra UEs con buen canal.
 BET decrece con N al distribuir tiempo hacia UEs de canal débil. La Fig.~\ref{fig:f4}
-sintetiza el efecto de D1→D2 para N=20.
+sintetiza el efecto de D1$\to$D2 para N=20.
 
 \begin{figure}[t]
   \centering
@@ -376,8 +376,8 @@ contra $|\Delta J_{N=10\to 40}|$ (efecto de carga con D1 fijo).
   \end{tabular}
 \end{table}
 
-\textbf{H2: no confirmada} para 6/7 schedulers. El incremento de carga (N: 10→40)
-impacta más en equidad que el cambio de distribución (D1→D2). Únicamente TTA
+\textbf{H2: no confirmada} para 6/7 schedulers. El incremento de carga (N: 10$\to$40)
+impacta más en equidad que el cambio de distribución (D1$\to$D2). Únicamente TTA
 muestra dominancia marginal del efecto espacial. Los schedulers channel-aware con
 historial proporcional (PF, M-LWDF) absorben eficientemente la heterogeneidad
 geográfica, siendo la saturación de la celda el factor dominante.
@@ -478,7 +478,7 @@ simultáneamente.
 
 \subsection{H2: resultado negativo valioso}
 
-El resultado negativo de H2 —que la carga domina sobre la distribución espacial—
+El resultado negativo de H2 ---que la carga domina sobre la distribución espacial---
 tiene implicaciones prácticas importantes: los operadores deben preocuparse más
 por la saturación de la celda que por la distribución geográfica de los usuarios,
 al menos cuando se usan schedulers channel-aware. PF y M-LWDF absorben la
@@ -515,7 +515,7 @@ OFDMA bajo heterogeneidad espacial y de tráfico. Las conclusiones principales s
         ignorados por canal débil), pero el Jain global no cae significativamente
         entre D1 y D2 porque ya estaba en el piso bajo fading.
 
-  \item \textbf{H2 (no confirmada):} La carga de usuarios (N: 10→40) impacta más
+  \item \textbf{H2 (no confirmada):} La carga de usuarios (N: 10$\to$40) impacta más
         en equidad que la distribución espacial para 6/7 schedulers. Los algoritmos
         channel-aware son robustos a la heterogeneidad geográfica.
 
