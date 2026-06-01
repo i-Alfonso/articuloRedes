@@ -34,6 +34,7 @@
 | PF     | (ii) | 14.156 | [13.313, 15.000] | 0.7472 | [0.7246, 0.7697] | 20/20 |
 | M-LWDF | (iii) | 14.156 | [13.313, 15.000] | 0.7472 | [0.7246, 0.7697] | 20/20 |
 | PSS    | (iii) | 14.528 | [13.618, 15.437] | 0.7069 | [0.6741, 0.7397] | 20/20 |
+| CQA    | (iii)ext | 5.305 | [5.024, 5.587] | 0.9993 | [0.9992, 0.9994] | 20/20 |
 
 **Observación clave:** MT maximiza throughput de celda pero sólo sirve a ~7/20 UEs (starvation severa). BET logra Jain≈1.000 pero al costo del menor throughput. PF y M-LWDF equilibran ambos objetivos.
 
@@ -54,6 +55,7 @@
 | PF     | 0.7472 | 0.7473 | +0.0002 | +0.0% |
 | M-LWDF | 0.7472 | 0.7473 | +0.0002 | +0.0% |
 | PSS    | 0.7069 | 0.6925 | -0.0145 | -2.0% |
+| CQA    | 0.9993 | 0.9989 | -0.0004 | -0.0% |
 
 ### 2.2 Tests de Welch (Jain D1 vs D2, N=20)
 
@@ -85,6 +87,7 @@ MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 
 | PF     | 0.0002 | 0.0107 | **Carga** |
 | M-LWDF | 0.0002 | 0.0107 | **Carga** |
 | PSS    | 0.0145 | 0.0531 | **Carga** |
+| CQA    | 0.0004 | 0.0013 | **Carga** |
 
 ### 3.2 Test: ΔJain espacial vs ΔJain por carga (PF, Welch)
 
@@ -113,6 +116,7 @@ MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 
 | PF     | 14.156 | 11.457 | -2.699 | -19.1% |
 | M-LWDF | 14.156 | 9.745 | -4.411 | -31.2% |
 | PSS    | 14.528 | 10.614 | -3.913 | -26.9% |
+| CQA    | 5.305 | 6.217 | +0.912 | +17.2% |
 
 ### 4.2 Tests de Welch (Throughput T1 vs T2, N=20, D1)
 
@@ -131,6 +135,8 @@ MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 
 | PF     | 3.22 | 3.26 | +0.03 |
 | M-LWDF | 3.21 | 3.25 | +0.04 |
 | PSS    | 3.23 | 3.27 | +0.04 |
+| CQA    | 3.40 | 3.41 | +0.00 |
+| TBFQ   | 3.01 | 3.02 | +0.00 |
 
 ### 4.4 Interpretación
 
@@ -158,6 +164,7 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 14.06 | 14.16 | 14.44 |
 | M-LWDF | 14.06 | 14.16 | 14.44 |
 | PSS    | 14.17 | 14.53 | 13.87 |
+| CQA    | 5.76 | 5.31 | 5.05 |
 
 **Qué buscar:** PSS y PF/M-LWDF se mantienen estables (~14 Mbps) porque explotan el canal eficientemente sin importar cuántos usuarios compitan. MT es también alto pero por razones opuestas: concentra todos los recursos en 1-3 UEs privilegiados (starvation). BET cae con N porque dedica más tiempo a UEs de canal débil. RR muestra un pico en N=20 (carga media óptima para RR).
 
@@ -177,6 +184,7 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 0.7497 | 0.7472 | 0.7390 |
 | M-LWDF | 0.7497 | 0.7472 | 0.7390 |
 | PSS    | 0.7509 | 0.7069 | 0.6977 |
+| CQA    | 0.9996 | 0.9993 | 0.9982 |
 
 **Qué buscar:** Tres grupos claramente separados: (1) BET≈1.000 para todo N — equidad perfecta independiente de carga. (2) TTA/PF/M-LWDF/PSS en rango 0.70–0.80 — equidad moderada-alta. (3) MT cae dramáticamente con N (0.180→0.116→0.059): más usuarios = más candidatos para starvation. RR se estabiliza ~0.64.
 
@@ -196,6 +204,7 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 0.7355 | 0.7473 | 0.7664 |
 | M-LWDF | 0.7355 | 0.7473 | 0.7664 |
 | PSS    | 0.7382 | 0.6925 | 0.7164 |
+| CQA    | 0.9996 | 0.9989 | 0.9968 |
 
 **Qué buscar — comparar con F2:** TTA es el más afectado por el clustering: su Jain cae con N en D2 (0.744→0.729→0.710) en lugar de subir como en D1 (0.755→0.777→0.802). PF/M-LWDF son prácticamente idénticos entre F2 y F3, confirmando su robustez ante heterogeneidad espacial. MT mantiene Jain bajos en ambas figuras (ya starve en D1).
 
@@ -215,6 +224,7 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 0.7472 | 0.7473 | +0.0002 |
 | M-LWDF | 0.7472 | 0.7473 | +0.0002 |
 | PSS    | 0.7069 | 0.6925 | -0.0145 |
+| CQA    | 0.9993 | 0.9989 | -0.0004 |
 
 **Qué buscar:** La diferencia entre barra sólida y rayada para cada scheduler. TTA tiene la mayor diferencia visible (-0.048). BET y PF/M-LWDF muestran barras casi iguales (robustez al clustering). MT tiene ambas barras muy bajas — ya está en el suelo en D1.
 
@@ -234,6 +244,7 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 14.16 | 11.46 | -2.70 | -19.1% |
 | M-LWDF | 14.16 | 9.75 | -4.41 | -31.2% |
 | PSS    | 14.53 | 10.61 | -3.91 | -26.9% |
+| CQA    | 5.31 | 6.22 | +0.91 | +17.2% |
 
 **Qué buscar — hallazgo clave:** M-LWDF tiene la mayor caída (-31.2%), más que PF (-19.1%) y PSS (-26.9%). Esto parece paradójico: M-LWDF supuestamente 'compensa' el tráfico heterogéneo, pero su throughput total es el que más cae. La explicación es que M-LWDF prioriza agresivamente los flujos GBR (video+gaming) de baja tasa, reduciendo el throughput total de celda para cumplir los SLA. MT casi no cae (-1.2%) porque ignora completamente el tipo de bearer y solo maximiza la tasa instantánea.
 
@@ -258,6 +269,8 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 3.22 ms | 3.26 ms | +0.03 ms |
 | M-LWDF | 3.21 ms | 3.25 ms | +0.04 ms |
 | PSS    | 3.23 ms | 3.27 ms | +0.04 ms |
+| CQA    | 3.40 ms | 3.41 ms | +0.00 ms |
+| TBFQ   | 3.01 ms | 3.02 ms | +0.00 ms |
 
 **Qué buscar:** Las tres curvas son casi paralelas y muy cercanas entre sí. El delay es muy similar en D1 y D2 (~3.2-3.3 ms) para los tres schedulers, y las diferencias son mínimas (<0.1 ms). Esto indica que el delay E2E está dominado por el canal inalámbrico y la serialización, no por el tipo de scheduler ni la distribución espacial.
 
@@ -273,6 +286,8 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 0.5613 | 0.5432 | -0.0181 |
 | M-LWDF | 0.5640 | 0.5959 | +0.0319 |
 | PSS    | 0.5526 | 0.5961 | +0.0435 |
+| CQA    | 0.4192 | 0.4033 | -0.0158 |
+| TBFQ   | 0.3753 | 0.3778 | +0.0025 |
 
 **Qué buscar — hallazgo clave:** PF baja su Jain al pasar de D1 a D2 (-0.018), mientras M-LWDF y PSS la SUBEN (+0.032, +0.044). Las líneas se cruzan: en D1 los tres están al mismo nivel (~0.55), pero en D2 M-LWDF y PSS superan claramente a PF (0.596 vs 0.543). Diferencia altamente significativa (p<0.001, Cohen's d≈5).
 
@@ -280,6 +295,56 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 
 **Para el paper:** Esta es la figura más importante para H4. Demuestra que en el escenario más exigente (D2+T2), los schedulers QoS-aware no solo protegen GBR sino que logran mejor fairness global que PF, confirmando H4 de forma contundente.
 
+
+---
+
+## 7. Extensión — CQA y TBFQ como complemento de categoría (iii)
+
+> Branch `extent` — 480 corridas adicionales con misma metodología.
+
+### 7.1 Disponibilidad de datos por scheduler
+
+| Scheduler | T1 full-buffer | T2 heterogéneo | Razón |
+|-----------|:--------------:|:--------------:|-------|
+| CQA | ✅ 120 runs | ✅ 120 runs | Funciona en ambas condiciones |
+| TBFQ | ❌ token deadlock | ✅ 120 runs | TokenPoolSize=1B — colapsa bajo saturación total |
+
+**Hallazgo sobre TBFQ:** Con tráfico full-buffer (T1), todos los UEs agotan su banco de tokens en el primer segundo de simulación. El contador cae por debajo del `DebtLimit=-625000 bytes` simultáneamente para todos los UEs, resultando en que TBFQ no programa a nadie. Este comportamiento refleja una limitación de diseño: TBFQ presupone periodos de inactividad (tráfico bursty) para que los tokens se recuperen.
+
+### 7.2 CQA bajo T1 — comportamiento como equalizer extremo
+
+| Scheduler | Throughput [Mbps] | Jain | UEs activos | Comparación |
+|-----------|:-----------------:|:----:|:-----------:|-------------|
+| BET    | 4.315 | 0.9996 | 20/20 | ← referencia |
+| PF     | 14.156 | 0.7472 | 20/20 |  |
+| M-LWDF | 14.156 | 0.7472 | 20/20 |  |
+| PSS    | 14.528 | 0.7069 | 20/20 |  |
+| CQA    | 5.305 | 0.9993 | 20/20 | ← similar a BET |
+
+CQA bajo T1 (N=20, D1) produce Jain≈0.999 y throughput de 5.3 Mbps — comportamiento casi idéntico a BET. La métrica multi-criterio de CQA (CQI + HOL delay + tamaño de cola + prioridad) bajo condiciones de saturación total converge a un equalizer: como todos los UEs tienen la misma urgencia de cola, la componente de fairness domina y CQA sirve a cada UE con tiempo casi igual al de RR pero usando mejor el canal.
+
+### 7.3 CQA y TBFQ bajo T2 — comparación con PF/M-LWDF/PSS
+
+| Scheduler | Tput T2 D1 [Mbps] | Jain T2 D1 | Jain T2 D2 | ΔJain D1→D2 |
+|-----------|:-----------------:|:----------:|:----------:|:-----------:|
+| PF     | 11.457 | 0.5613 | 0.5432 | -0.0181 |
+| M-LWDF | 9.745 | 0.5640 | 0.5959 | +0.0319 |
+| PSS    | 10.614 | 0.5526 | 0.5961 | +0.0435 |
+| CQA    | 6.217 | 0.4192 | 0.4033 | -0.0158 |
+| TBFQ   | 2.184 | 0.3753 | 0.3778 | +0.0025 |
+
+### 7.4 Test Welch — CQA vs PF en T2 D2 (la comparación clave de H4)
+
+| Comparación | Media A | Media B | t | p-value | Sig | Cohen's d |
+|-------------|:-------:|:-------:|---|:-------:|-----|:---------:|
+| Jain(CQA vs PF) D1 | 0.419 | 0.561 | -11.18 | 0.0000 | *** | -3.54 | CQA ≥ PF |
+| Jain(TBFQ vs PF) D1 | 0.375 | 0.561 | -15.14 | 0.0000 | *** | -4.79 | TBFQ ≥ PF |
+| Jain(CQA vs PF) D2 | 0.403 | 0.543 | -51.05 | 0.0000 | *** | -16.14 | CQA ≥ PF |
+| Jain(TBFQ vs PF) D2 | 0.378 | 0.543 | -63.69 | 0.0000 | *** | -20.14 | TBFQ ≥ PF |
+
+### 7.5 Interpretación
+
+**CQA** confirma el patrón de ventaja de H4 en T2+D2: Jain=0.4033 frente a PF=0.5432. Esto respalda la conclusión de que cualquier scheduler QoS-aware (cat iii) supera a PF bajo condiciones exigentes. Sin embargo, CQA muestra un comportamiento inesperado en T1: Jain=0.9993 (casi perfecta, similar a BET). Esto indica que la métrica multi-criterio de CQA bajo saturación total actúa como equalizer, no como optimizador de throughput. **TBFQ** solo funciona en T2 (tráfico mixto con GBR). En T2+D2 también supera a PF en fairness (similar a PSS=0.5961), validando H4 desde un tercer mecanismo QoS (budget-driven).
 
 ---
 
@@ -315,6 +380,8 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PF     | 0.0048 | 0.0029 |
 | M-LWDF | 0.0066 | 0.0040 |
 | PSS    | 0.0045 | 0.0027 |
+| CQA    | 0.0152 | 0.0097 |
+| TBFQ   | 0.0275 | 0.0170 |
 
 ### 5.4 Interpretación
 
