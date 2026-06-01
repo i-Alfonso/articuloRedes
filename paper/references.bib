@@ -16,12 +16,28 @@
   year    = {1984}
 }
 
+% Fundamento matemático del Proportional Fair: el concepto de "proportional fairness"
+% como solución al problema de asignación de recursos con maximización de utilidad.
+@article{pf1998,
+  author  = {Kelly, F. P. and Maulloo, A. K. and Tan, D. K. H.},
+  title   = {Rate control for communication networks: shadow prices, proportional fairness and stability},
+  journal = {Journal of the Operational Research Society},
+  volume  = {49},
+  number  = {3},
+  pages   = {237--252},
+  year    = {1998}
+}
+
+% Aplicación de PF al contexto inalámbrico y diversidad multiusuario.
 @article{pf1999,
-  author  = {Tse, D. N. C.},
-  title   = {Multiuser Diversity in Wireless Networks},
-  journal = {Wireless Communications},
-  year    = {1999},
-  note    = {Standford University EE359 slides}
+  author  = {Viswanath, P. and Tse, D. N. C. and Laroia, R.},
+  title   = {Opportunistic Beamforming Using Dumb Antennas},
+  journal = {IEEE Transactions on Information Theory},
+  volume  = {48},
+  number  = {6},
+  pages   = {1277--1294},
+  year    = {2002},
+  note    = {Formaliza el concepto de diversidad multiusuario explotada por schedulers PF}
 }
 
 @article{mlwdf2001,
@@ -34,84 +50,58 @@
   year    = {2001}
 }
 
-@article{pss2006,
-  author  = {Sesia, S. and Toufik, I. and Baker, M.},
-  title   = {{LTE}: The {UMTS} Long Term Evolution --- From Theory to Practice},
-  journal = {Wiley},
-  year    = {2009}
+% Referencia canónica para PSS y descripción de schedulers LTE en general.
+@book{pss2006,
+  author    = {Sesia, S. and Toufik, I. and Baker, M.},
+  title     = {{LTE}: The {UMTS} Long Term Evolution --- From Theory to Practice},
+  publisher = {Wiley},
+  year      = {2009},
+  edition   = {1st}
 }
 
-@article{exp2002,
-  author  = {Shakkottai, S. and Stolyar, A. L.},
-  title   = {Scheduling for Multiple Flows Sharing a Time-Varying Channel: The Exponential Rule},
-  journal = {American Mathematical Society Translations},
-  volume  = {207},
-  pages   = {185--202},
-  year    = {2002}
+@article{bet2004,
+  author  = {Pokhariyal, A. and Kolding, T. E. and Mogensen, P. E.},
+  title   = {Performance of Downlink Frequency Domain Packet Scheduling for the {UTRAN} Long Term Evolution},
+  journal = {Proc. 17th IEEE PIMRC},
+  year    = {2006},
+  pages   = {1--5}
 }
 
-@article{cqa2007,
-  author  = {Ibrahim, H. and ElBatt, T. and El-Keyi, A.},
-  title   = {Channel and {QoS}-Aware Downlink Packet Scheduling for {LTE} Networks},
-  journal = {Wireless Networks},
-  year    = {2012}
+@inproceedings{tta2007,
+  author    = {Basukala, R. and Mohd Ramli, H. A. and Sandrasegaran, K.},
+  title     = {Performance Analysis of {EXP/PF} and {M-LWDF} in Downlink {3GPP LTE} System},
+  booktitle = {Proceedings of the 1st Asian Himalayas International Conference on Internet (AHICI)},
+  year      = {2009},
+  pages     = {1--5}
 }
 
-@article{tbfq2005,
-  author  = {Wu, T. and Rappaport, T. S. and Collins, C. M.},
-  title   = {Safe for Children? Mobile Phone Use and Brain Tumors},
-  journal = {IEEE Transactions on Vehicular Technology},
-  note    = {Token Bank Fair Queuing reference}
+@techreport{lte3gpp,
+  author      = {{3GPP}},
+  title       = {Evolved Universal Terrestrial Radio Access ({E-UTRA}); Physical Layer Procedures},
+  institution = {3rd Generation Partnership Project},
+  number      = {TS 36.213},
+  year        = {2018}
 }
 
-@article{epa2005,
-  author  = {{3GPP}},
-  title   = {Evolved Universal Terrestrial Radio Access ({E-UTRA}); Base Station ({BS}) Radio Transmission and Reception},
-  journal = {Technical Specification TS 36.104},
-  year    = {2018}
+@techreport{epa3gpp,
+  author      = {{3GPP}},
+  title       = {Evolved Universal Terrestrial Radio Access ({E-UTRA}); Base Station ({BS}) Radio Transmission and Reception},
+  institution = {3rd Generation Partnership Project},
+  number      = {TS 36.104},
+  year        = {2018}
 }
 
-@article{lte3gpp,
-  author  = {{3GPP}},
-  title   = {Evolved Universal Terrestrial Radio Access ({E-UTRA}); Physical Layer Procedures},
-  journal = {Technical Specification TS 36.213},
-  year    = {2018}
-}
-
-@misc{ns3,
+@misc{ns3sim,
   author       = {{ns-3 Consortium}},
   title        = {{ns-3} Network Simulator, Version 3.47},
   howpublished = {\url{https://www.nsnam.org}},
   year         = {2024}
 }
 
-@article{bet2004,
-  author  = {Pokhariyal, A. and Kolding, T. E. and Mogensen, P. E.},
-  title   = {Performance of Downlink Frequency Domain Packet Scheduling for the {UTRAN} Long Term Evolution},
-  journal = {Proceedings of the 17th IEEE International Symposium on Personal, Indoor and Mobile Radio Communications},
-  year    = {2006}
-}
-
-@article{tta2007,
-  author  = {Basukala, R. and Mohd Ramli, H. A. and Sandrasegaran, K.},
-  title   = {Performance Analysis of {EXP/PF} and {M-LWDF} in Downlink {3GPP LTE} System},
-  journal = {Proceedings of the 1st Asian Himalayas International Conference on Internet},
-  year    = {2009}
-}
-
-@article{ofdma2010,
-  author  = {Gesbert, D. and Kountouris, M. and Heath, R. W. and Chae, C.-B. and Sälzer, T.},
-  title   = {Shifting the {MIMO} Paradigm},
-  journal = {IEEE Signal Processing Magazine},
-  volume  = {24},
-  number  = {5},
-  pages   = {36--46},
-  year    = {2007}
-}
-
-@article{het2015,
-  author  = {Dahlman, E. and Parkvall, S. and Sköld, J.},
-  title   = {4G: {LTE/LTE-Advanced} for Mobile Broadband},
-  journal = {Academic Press},
-  year    = {2013}
+@book{het2015,
+  author    = {Dahlman, E. and Parkvall, S. and Sk{\"o}ld, J.},
+  title     = {4G: {LTE/LTE-Advanced} for Mobile Broadband},
+  publisher = {Academic Press},
+  year      = {2013},
+  edition   = {2nd}
 }

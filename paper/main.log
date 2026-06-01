@@ -470,7 +470,7 @@ File: figures//F8_jain_D1vsD2_N20_T2.pdf Graphic file (type pdf)
 <use figures//F8_jain_D1vsD2_N20_T2.pdf>
 File: figures//F7_delay_D1vsD2_N20_T2.pdf Graphic file (type pdf)
 <use figures//F7_delay_D1vsD2_N20_T2.pdf>
- [6] [7] (main.bbl)
+ [6] [7] (main.bbl [8])
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -482,7 +482,9 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[8] (main.aux
+[9
+
+] (main.aux
 LaTeX Info: Redefining \. on input line 12.
 LaTeX Info: Redefining \% on input line 12.
 )
@@ -490,4 +492,4 @@ LaTeX Info: Redefining \% on input line 12.
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  )
-Output written on main.xdv (8 pages, 56812 bytes).
+Output written on main.xdv (9 pages, 59028 bytes).

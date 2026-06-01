@@ -195,17 +195,17 @@ que los flujos best-effort compitan directamente con GBR \cite{pss2006}.
   \caption{Schedulers evaluados --- esquema 2-3-2 de la taxonomía Capozzi}
   \label{tab:schedulers}
   \footnotesize
-  \begin{tabular}{@{}llll@{}}
+  \begin{tabular}{@{}llp{2.8cm}p{2.8cm}@{}}
     \toprule
-    \textbf{Scheduler} & \textbf{Cat.} & \textbf{Clase ns-3} & \textbf{Característica} \\
+    \textbf{Sched.} & \textbf{Cat.} & \textbf{Clase ns-3} & \textbf{Característica} \\
     \midrule
-    RR     & (i)   & RrFfMacScheduler     & Tiempo igual por UE \\
-    BET    & (i)   & FdBetFfMacScheduler  & Throughput igual por UE \\
-    MT     & (ii)  & TdMtFfMacScheduler   & Maximiza tasa instantánea \\
-    TTA    & (ii)  & TtaFfMacScheduler    & Normaliza por tasa wideband \\
-    PF     & (ii)  & PfFfMacScheduler     & Proporcional histórico \\
-    M-LWDF & (iii) & MlwdfFfMacScheduler  & Delay HOL + canal (impl.) \\
-    PSS    & (iii) & PssFfMacScheduler    & Separación GBR/non-GBR \\
+    RR     & (i)   & RrFfMacScheduler    & Tiempo igual por UE \\
+    BET    & (i)   & FdBetFfMacScheduler & Throughput igual \\
+    MT     & (ii)  & TdMtFfMacScheduler  & Maximiza tasa inst. \\
+    TTA    & (ii)  & TtaFfMacScheduler   & Normaliza por tasa wideband \\
+    PF     & (ii)  & PfFfMacScheduler    & Proporcional histórico \\
+    M-LWDF & (iii) & MlwdfFfMacScheduler & HOL delay + canal \\
+    PSS    & (iii) & PssFfMacScheduler   & Separación GBR/BE \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -216,11 +216,12 @@ que los flujos best-effort compitan directamente con GBR \cite{pss2006}.
 
 La referencia más influyente sigue siendo Capozzi et al.~\cite{capozzi2012}, que
 evaluaron doce schedulers con distribución uniforme de usuarios y tráfico full-buffer.
-Sus resultados para PF con N=20 reportan Jain$\approx$0.82, un valor notablemente
-superior al 0.747 que observamos aquí con fading EPA activo. La diferencia no es
-menor: sin fading, los UEs equidistantes tienen CQI idéntico y PF se comporta casi
-como RR. Con fading real, PF explota la diversidad temporal y favorece a quien tiene
-mejor canal \emph{en ese instante}, lo que degrada la equidad global.
+Sus resultados para PF reportan Jain claramente superior al 0.747 que observamos
+aquí con fading EPA activo. La diferencia no es menor: sin fading, los UEs
+equidistantes tienen CQI idéntico y PF se comporta casi como RR. Con fading real,
+PF explota la diversidad temporal y favorece a quien tiene mejor canal \emph{en ese
+instante}, lo que degrada la equidad global. El fading EPA es una condición más
+realista pero más hostil para la equidad.
 
 Andrews et al.~\cite{mlwdf2001} propusieron M-LWDF originalmente para redes 1xEV-DO,
 con foco en mantener la tasa de pérdida de paquetes por debajo de un umbral estadístico.
@@ -247,7 +248,10 @@ varianza del fading.
 
 \subsection{Entorno de simulación}
 
-Usamos ns-3.47 con módulo LTE/EPC (Tabla~\ref{tab:params}). Tres decisiones de
+Usamos ns-3.47~\cite{ns3sim} con módulo LTE/EPC (Tabla~\ref{tab:params}).
+El módulo LTE de ns-3 implementa el stack completo de protocolo descendente (PHY,
+MAC, RLC, PDCP, EPC) y expone la interfaz FfMacScheduler que permite intercambiar
+el algoritmo de scheduling sin modificar el resto del simulador. Tres decisiones de
 configuración merecen justificación explícita.
 
 \textbf{Fading EPA en lugar de canal puramente determinístico.} Sin fading, dos UEs
@@ -381,6 +385,34 @@ de latencia distintas, es decir, bajo T2.
   \end{tabular}
 \end{table}
 
+\textbf{Throughput por usuario (D2, N=20, T1).} La Tabla~\ref{tab:per_ue} muestra
+cómo se distribuye el throughput entre los 20 UEs bajo distribución clusterizada.
+Es la métrica que el Jain resume en un escalar, pero la distribución completa es más
+reveladora. MT tiene rango máximo--mínimo de 4.68~Mbps (mejor cluster) a 0~Mbps (peor
+cluster). BET reduce ese rango a 0.017~Mbps, a costo de que el máximo cae de 4.68 a
+0.295~Mbps. PF equilibra: rango de 1.49~Mbps (de 0.36 a 1.85), todos los UEs
+reciben algo.
+
+\begin{table}[t]
+  \centering
+  \caption{Distribución de throughput por usuario --- D2, N=20, T1 (run representativo)}
+  \label{tab:per_ue}
+  \footnotesize
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Scheduler} & \textbf{Mín [Mbps]} & \textbf{Máx [Mbps]} & \textbf{Rango} & \textbf{UEs$>$0} \\
+    \midrule
+    RR     & 0.153 & 1.210 & 1.057 & 20/20 \\
+    BET    & 0.278 & 0.295 & 0.017 & 20/20 \\
+    MT     & 0.000 & 4.681 & 4.681 & 7/20  \\
+    TTA    & 0.337 & 1.768 & 1.431 & 20/20 \\
+    PF     & 0.361 & 1.846 & 1.485 & 20/20 \\
+    M-LWDF & 0.361 & 1.846 & 1.485 & 20/20 \\
+    PSS    & 0.341 & 2.105 & 1.764 & 20/20 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
 \subsection{H1: Fairness bajo distribución clusterizada}
 
 La predicción de H1 era que los schedulers orientados a throughput degradarían su
@@ -478,7 +510,7 @@ clusters. Con N=40 hay 40 candidatos para el mejor canal en cada TTI: las chance
 que un mismo usuario gane dos TTIs consecutivos son mínimas, pero la probabilidad de
 que los del cluster C3 nunca ganen sube.
 
-El único scheduler donde el efecto espacial marginalemente domina es TTA, por las
+El único scheduler donde el efecto espacial marginalmente domina es TTA, por las
 razones descritas en H1. Es el único cuya métrica de normalización (tasa wideband del
 mismo TTI) no acumula historial y por tanto no compensa la desventaja geográfica tan
 eficientemente.
@@ -672,10 +704,13 @@ El costo ---4.3~Mbps de throughput frente a los 14.5~Mbps de PSS--- es enorme pa
 un escenario de datos masivos. Pero no todo escenario necesita maximizar throughput.
 
 MT es el único que no debería usarse en una celda heterogénea con múltiples servicios.
-En D2 con tráfico interleaved, 14 de 20 UEs recibieron cero bytes durante toda la
-simulación. No es un fallo del fading; es por diseño: MT nunca considerará a un UE
-lejano si hay uno cercano con mejor canal instantáneo, y en D2 los UEs de C1 siempre
-tienen mejor canal promedio.
+En D2 con tráfico interleaved (T2), alrededor de 10 de 20 UEs reciben cero bytes
+durante la mayor parte de la simulación ---en D1 con tráfico homogéneo la cifra
+sube a 14/20 starved (solo 6 activos, Tabla~\ref{tab:referencia}). Con T2, algunos
+flujos GBR de baja tasa (gaming, 64~kbps) generan menos presión en el buffer, y MT
+puede servirlos ocasionalmente cuando los UEs de C1 no tienen backlog. Pero eso no
+cambia el diagnóstico estructural: MT nunca prioriza a un UE lejano si hay uno cercano
+con mejor CQI, y en D2 los UEs de C1 siempre tienen mejor canal promedio.
 
 \subsection{Implicaciones para el diseño de redes}
 
