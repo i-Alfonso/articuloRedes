@@ -337,7 +337,11 @@ El experimento completo comprende dos grupos:
 
 \textbf{Total: 1{,}680 corridas.} Cada configuración utiliza 20 repeticiones con semillas
 independientes para obtener IC al 95\% (t-Student, $df=19$, $t_{crit}=2.093$).
-Las comparaciones entre schedulers emplean el test de Welch con umbral $p<0.05$.
+Las comparaciones entre schedulers emplean el test de Welch (varianzas no iguales)
+con umbral $p<0.05$. La normalidad de los datos fue verificada con la prueba de
+Shapiro-Wilk en las métricas principales (todas con $p>0.14$), lo que valida el uso
+del análisis paramétrico. No se detectaron valores atípicos (z-score $<2.5$ en todos
+los grupos).
 
 \subsection{Hipótesis de investigación}
 
@@ -617,9 +621,19 @@ hacia GBR. PF distribuye ambos proporcionalmente sin distinguirlos.
 \end{figure}
 
 La diferencia entre T1 y T2 para PF es estadísticamente significativa
-($t=+4.96$, $p<0.001$, $d=1.57$), y H3 se confirma. Pero el matiz importante
-es que la caída no viene de que PF sea ineficiente: viene de que el tráfico GBR
-tiene tasas máximas garantizadas más bajas que el best-effort full-buffer.
+($t=+4.96$, $p<0.001$, $d=1.57$), y H3 se confirma. Pero hay un efecto adicional
+que el throughput total no muestra: el Jain también cae drásticamente al pasar a T2.
+PF pierde un 24.9\% de equidad (de 0.747 a 0.561), M-LWDF un 24.5\%, y hasta BET
+cae un 14.3\% (de 0.999 a 0.856). La causa es estructural: con 1/3 de usuarios
+en gaming (64~kbps) y 1/3 en video (1.5~Mbps), la distribución de throughput por
+usuario es inherentemente desigual por las diferencias de tasa máxima ---sin importar
+qué scheduler se use. El tráfico heterogéneo no solo reduce la eficiencia de la celda;
+también degrada la equidad global porque las tasas garantizadas de GBR son muy
+distintas entre sí y mucho menores que las del best-effort.
+
+Otro dato notable: MT es el único scheduler con PLR$\approx$0 bajo T1. Al no generar
+cola de espera (siempre sirve al mejor UE en el instante), los paquetes se transmiten
+sin retardo ni pérdida ---a costa de dejar a 13 usuarios sin servicio.
 
 \subsection{H4: Schedulers QoS-aware bajo tráfico heterogéneo}
 
@@ -654,6 +668,11 @@ Tabla~\ref{tab:h4}).
     \bottomrule
   \end{tabular}
 \end{table}
+
+Un dato adicional que confirma la solidez del resultado: el throughput de celda bajo
+T2 también aumenta al pasar de D1 a D2, igual que bajo T1 (PF: +32.3\%, M-LWDF:
++33.7\%, PSS: +33.8\%). El beneficio de eficiencia del clustering es independiente
+del tipo de tráfico.
 
 Por qué M-LWDF y PSS \emph{mejoran} su Jain al pasar a D2: con distribución interleaved,
 cada cluster tiene un tercio de flujos GBR. Los UEs GBR en C3 (400~m, canal débil)
