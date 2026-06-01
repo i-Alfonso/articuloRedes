@@ -83,7 +83,9 @@ darle recursos. Esa decisión no es trivial, y su impacto sobre la experiencia d
 usuario depende tanto del algoritmo elegido como de las condiciones del entorno.
 
 El problema de asignación de recursos en OFDMA ha generado docenas de propuestas
-desde los primeros años de LTE. Los tres clásicos ---Round Robin, Maximum Throughput
+desde los primeros años de LTE. Los \emph{schedulers} (planificadores de recursos)
+---algoritmos que deciden a quién dar cada bloque de radio cada milisegundo--- son el
+objeto de estudio de este trabajo. Los tres clásicos ---Round Robin, Maximum Throughput
 y Proportional Fair--- están documentados con precisión \cite{pf1999}. Capozzi et
 al.~\cite{capozzi2012} organizaron la literatura en una taxonomía de cinco categorías
 que es hoy el marco de referencia estándar. El problema es que casi toda esa literatura
@@ -113,8 +115,10 @@ scheduler en escenarios reales.
 
 \subsection{OFDMA y asignación de recursos en LTE}
 
-En LTE, el canal descendente divide el espectro en bloques de recursos (RBs) de 180~kHz.
-Con 10~MHz de ancho de banda hay 50~RBs disponibles por TTI (1~ms). El scheduler
+En LTE, el canal descendente (de la antena al teléfono) divide el espectro en bloques
+de recursos (RBs, \emph{Resource Blocks}) de 180~kHz de ancho cada uno. Con 10~MHz
+de ancho de banda hay 50~RBs disponibles por TTI (Intervalo de Transmisión,
+\emph{Transmission Time Interval}, de 1~ms de duración). El scheduler
 asigna estos RBs a usuarios individuales en cada TTI, guiándose por el CQI que cada
 usuario reporta: un valor de 1 a 15 que codifica la SINR recibida en cada RB.
 El número de bits que caben en un RB puede variar desde 2 (QPSK, SINR$<$3~dB) hasta
@@ -150,12 +154,15 @@ Capozzi et al.~\cite{capozzi2012} clasifican los schedulers LTE en cinco categor
 Este trabajo activa las tres relevantes para redes heterogéneas:
 
 \begin{itemize}
-  \item \textbf{(i) Channel-unaware / QoS-unaware}: no utiliza CQI ni restricciones de
-        QoS. Representantes: RR, BET.
-  \item \textbf{(ii) Channel-aware / QoS-unaware}: explota CQI pero no distingue
-        tipos de flujo. Representantes: MT, TTA, PF.
-  \item \textbf{(iii) Channel-aware / QoS-aware}: combina CQI con restricciones de
-        delay/bitrate por flujo. Representantes: M-LWDF, PSS.
+  \item \textbf{(i) Sin consciencia de canal ni de QoS} (\emph{channel-unaware /
+        QoS-unaware}): no usa información del canal ni garantías de servicio.
+        Representantes: RR, BET.
+  \item \textbf{(ii) Con consciencia de canal, sin QoS} (\emph{channel-aware /
+        QoS-unaware}): explota el CQI para mejorar eficiencia, pero no distingue
+        entre tipos de flujo. Representantes: MT, TTA, PF.
+  \item \textbf{(iii) Con consciencia de canal y de QoS} (\emph{channel-aware /
+        QoS-aware}): combina la información del canal con restricciones de retardo
+        y tasa mínima por flujo. Representantes: M-LWDF, PSS.
 \end{itemize}
 
 Las categorías (iv) semi-persistent y (v) energy-aware se descartan por tener
@@ -313,8 +320,9 @@ estadísticamente independientes.
 \begin{itemize}
   \item \textbf{T1 --- Homogéneo}: todos los UEs con tráfico full-buffer (OnOff a 10~Mbps).
         Capacidad ofrecida $\gg$ capacidad de celda ($\approx$20~Mbps), garantizando saturación.
-  \item \textbf{T2 --- Heterogéneo}: asignación interleaved ($u \bmod 3$): video GBR (QCI-4,
-        1.5~Mbps), gaming GBR (QCI-3, 64~kbps), best-effort full-buffer. La asignación
+  \item \textbf{T2 --- Heterogéneo}: asignación intercalada ($u \bmod 3$):
+        video GBR (flujo con tasa mínima garantizada de 1.5~Mbps, QCI-4),
+        gaming GBR (64~kbps, QCI-3) y best-effort (sin garantía, full-buffer). La asignación
         interleaved garantiza que cada cluster recibe los tres tipos mezclados,
         eliminando correlación posición-tráfico.
 \end{itemize}
@@ -347,13 +355,16 @@ Las comparaciones entre schedulers emplean el test de Welch con umbral $p<0.05$.
 \subsection{Escenario de referencia (N=20, D1, T1)}
 
 Antes de analizar los efectos de la heterogeneidad, vale la pena observar el escenario
-más simple: distribución uniforme, tráfico homogéneo, N=20. Los números de la
+más simple: distribución uniforme, tráfico homogéneo, N=20. Las figuras de este trabajo
+muestran también resultados de CQA (\emph{Channel and QoS Aware}), un octavo scheduler
+evaluado como extensión de la categoría (iii); su análisis detallado se presenta en el
+reporte de análisis complementario al paper. Los números de la
 Tabla~\ref{tab:referencia} cuentan una historia ya conocida pero que el fading con
 full-buffer hace más nítida.
 
-MT alcanza 11.09~Mbps ---nada mal--- pero en la práctica solo está sirviendo a 6 de
-20 usuarios. Los otros 14 reciben exactamente cero bytes durante los 25 segundos de
-medición. Es la versión más cruda del trade-off throughput/fairness: el algoritmo
+MT alcanza 11.09~Mbps ---nada mal--- pero en la práctica está sirviendo a apenas
+7 de 20 usuarios en promedio (el rango observado entre las 20 repeticiones va de 5 a 9).
+Los demás reciben cero bytes durante los 25 segundos de medición. Es la versión más cruda del trade-off throughput/fairness: el algoritmo
 hace su trabajo perfectamente, maximiza la tasa instantánea, y en el proceso convierte
 la celda en un monopolio. BET es el extremo opuesto: Jain=0.999 es casi perfectamente
 justo, pero a costa de bajar el throughput de celda a 4.32~Mbps. PF, con 14.16~Mbps
@@ -376,7 +387,7 @@ de latencia distintas, es decir, bajo T2.
     \midrule
     RR     & (i)   & 7.22 ± 0.60   & 0.642 ± 0.040 & 20/20 \\
     BET    & (i)   & 4.32 ± 0.27   & 0.999 ± 0.000 & 20/20 \\
-    MT     & (ii)  & 11.09 ± 0.19  & 0.116 ± 0.023 & 6/20  \\
+    MT     & (ii)  & 11.09 ± 0.19  & 0.116 ± 0.023 & $\approx$7/20 \\
     TTA    & (ii)  & 10.04 ± 0.68  & 0.777 ± 0.035 & 20/20 \\
     PF     & (ii)  & 14.16 ± 0.84  & 0.747 ± 0.023 & 20/20 \\
     M-LWDF & (iii) & 14.16 ± 0.84  & 0.747 ± 0.023 & 20/20 \\
@@ -440,14 +451,14 @@ idénticas entre distribuciones.
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{F1_throughput_vs_N_D1.pdf}
-  \caption{Throughput de celda vs N (D1, T1). PSS y PF escalan bien; BET penaliza por equidad.}
+  \caption{Throughput de celda vs N (D1, T1). PF sube de forma estable; PSS alcanza su máximo en N=20 y baja en N=40; BET cae porque dedica más tiempo a UEs de canal débil.}
   \label{fig:f1}
 \end{figure}
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{F2_jain_vs_N_D1.pdf}
-  \caption{Jain vs N (D1, T1). MT colapsa con N; TTA y PF son estables.}
+  \caption{Jain vs N (D1, T1). MT colapsa con N (de 0.18 a 0.06). TTA mejora levemente con más usuarios; PF se mantiene estable en ~0.75.}
   \label{fig:f2}
 \end{figure}
 
@@ -465,9 +476,10 @@ idénticas entre distribuciones.
   \label{fig:f4}
 \end{figure}
 
-H1 se confirma parcialmente: la starvation bajo D2 existe y es sistemática para MT
-(los UEs de C3 a 400~m reciben cero recursos de forma consistente), pero el índice
-de Jain global no lo captura bien porque MT ya era injusto en D1. La degradación
+H1 se confirma parcialmente: la \emph{starvation} (privación total de recursos) bajo D2
+existe y es sistemática para MT ---los usuarios del cluster más lejano (C3, 400~m)
+no reciben nada de forma consistente--- pero el índice de Jain global no lo captura
+bien porque MT ya era injusto en D1. La degradación
 más clara de H1 aparece en TTA, no en MT.
 
 \subsection{H2: Efecto espacial vs número de usuarios}
@@ -515,10 +527,9 @@ razones descritas en H1. Es el único cuya métrica de normalización (tasa wide
 mismo TTI) no acumula historial y por tanto no compensa la desventaja geográfica tan
 eficientemente.
 
-Este resultado tiene una implicación práctica concreta: si un operador quiere mejorar
-la equidad en una celda, debe preocuparse primero por la carga (¿está saturada?) antes
-que por la geometría de los usuarios. PF absorbe la heterogeneidad espacial sin
-configuración adicional.
+Dicho de otra forma: antes de ajustar la distribución antena-usuario, vale más revisar
+si la celda está saturada. PF absorbe la heterogeneidad espacial sin necesitar
+configuración adicional de umbrales o parámetros de distancia.
 
 \subsection{Un hallazgo no anticipado: D2 mejora el throughput}
 
@@ -745,9 +756,8 @@ de celda reducido--- no es relevante cuando la tasa por sensor es de kilobits.
 
 \subsection{¿Cuándo cambiar de scheduler?}
 
-Una consecuencia práctica de los resultados es que no existe un scheduler universalmente
-óptimo, y la elección debería adaptarse al perfil de la celda. Un operador podría
-usar la siguiente heurística basada en los datos:
+No hay un scheduler universalmente ganador. Pero los datos sí permiten hacer una
+recomendación específica para cada perfil de celda:
 
 \begin{itemize}
   \item \textbf{Tráfico homogéneo, carga$<$70\%}: PF cubre todos los objetivos con
