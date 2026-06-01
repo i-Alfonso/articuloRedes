@@ -123,8 +123,33 @@ Los nuevos schedulers aparecerán en todas las figuras F1-F8 con sus propias cur
 - [x] CQA y TBFQ verificados con test run de 5 s (FlowStats.csv generado)
 - [x] `experiment.yaml` actualizado con fase4_extent_a y fase4_extent_b
 - [x] `orchestrator.py` actualizado con grupos `ea` y `eb`
-- [ ] Lanzar fase 4a (240 runs)
-- [ ] Lanzar fase 4b (240 runs)
-- [ ] Regenerar master.csv + stats.csv con `--phase analyze`
+- [x] Lanzar fase 4a (240 runs) — CQA OK 120/120, TBFQ T1 falla 0/120 — ver nota
+- [x] Lanzar fase 4b (240 runs) — CQA OK 120/120, TBFQ T2 OK 120/120
+- [x] Regenerar master.csv (2040 filas) + stats.csv (102 grupos)
 - [ ] Regenerar figuras con nuevos schedulers (`--phase plot`)
 - [ ] Regenerar reporte de análisis (`generate_analysis.py`)
+
+## ⚠️ Hallazgo: TBFQ incompatible con tráfico full-buffer (T1)
+
+**Síntoma:** `DlRlcStats.txt` de TBFQ solo tiene datos en el intervalo 1–1.25 s.
+Después no se programa ningún UE.
+
+**Causa raíz:** `FdTbfqFfMacScheduler` tiene `TokenPoolSize=1 byte` por defecto.
+Con tráfico full-buffer (10 Mbps/UE × 20 UEs >> 20 Mbps celda), los tokens de cada UE
+se agotan en el primer segundo. El contador del banco cae por debajo de `DebtLimit=-625000 bytes`
+y TBFQ deja de programar a todos los UEs simultáneamente — deadlock de tokens.
+
+**Por qué T2 funciona:** Con tráfico heterogéneo (video 1.5 Mbps + gaming 64 kbps + BE),
+los flujos GBR tienen tasas bajas que generan menor deuda de tokens, permitiendo
+que el banco se recupere entre TTIs.
+
+**Conclusión para el paper:** TBFQ presupone periodos de inactividad para recuperar tokens
+(tráfico bursty). Bajo saturación total (T1 full-buffer), el mecanismo colapsa.
+Este es un resultado negativo valioso: no todos los schedulers cat (iii) son robustos
+bajo condiciones de carga extrema. Se incluye solo el análisis T2 de TBFQ.
+
+**Datos disponibles:**
+| Scheduler | T1 (homogéneo) | T2 (heterogéneo) |
+|-----------|:--------------:|:----------------:|
+| CQA | ✅ 120 runs | ✅ 120 runs |
+| TBFQ | ❌ incompatible | ✅ 120 runs |

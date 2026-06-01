@@ -68,6 +68,8 @@ SCHED_COLOR = {
     "pf":    "#74C476",
     "mlwdf": "#B47CC7",
     "pss":   "#C4A634",
+    "cqa":   "#8B4513",   # categoría iii extensión
+    "tbfq":  "#228B22",   # categoría iii extensión (solo T2)
 }
 SCHED_LABEL = {
     "rr":    "RR",
@@ -77,9 +79,13 @@ SCHED_LABEL = {
     "pf":    "PF",
     "mlwdf": "M-LWDF",
     "pss":   "PSS",
+    "cqa":   "CQA",
+    "tbfq":  "TBFQ",
 }
-SCHED_ORDER = ["rr", "bet", "mt", "tta", "pf", "mlwdf", "pss"]
-QOS_ORDER   = ["pf", "mlwdf", "pss"]
+# T1: 7 originales + CQA (TBFQ no disponible con T1 full-buffer)
+SCHED_ORDER = ["rr", "bet", "mt", "tta", "pf", "mlwdf", "pss", "cqa"]
+# T2: PF, M-LWDF, PSS, CQA, TBFQ
+QOS_ORDER   = ["pf", "mlwdf", "pss", "cqa", "tbfq"]
 N_VALS      = [10, 20, 40]
 
 # ---------------------------------------------------------------------------
@@ -90,13 +96,19 @@ def load_stats() -> pd.DataFrame:
     return pd.read_csv(STATS_CSV)
 
 
-def _phase(traffic: str) -> str:
-    return "phase2_group_a" if traffic == "homogeneous" else "phase3_group_b"
+def _phase(traffic: str, scheduler: str = "") -> str:
+    """Retorna la fase correcta según tráfico y scheduler."""
+    if traffic == "homogeneous":
+        # CQA T1 está en phase4_extent_a, los 7 originales en phase2_group_a
+        return "phase4_extent_a" if scheduler == "cqa" else "phase2_group_a"
+    else:
+        # CQA T2 y TBFQ T2 están en phase4_extent_b, originales en phase3_group_b
+        return "phase4_extent_b" if scheduler in ("cqa", "tbfq") else "phase3_group_b"
 
 
 def row(df: pd.DataFrame, sched: str, n: int,
         spatial: str, traffic: str) -> pd.Series:
-    ph = _phase(traffic)
+    ph = _phase(traffic, sched)
     mask = ((df.phase == ph) & (df.scheduler == sched) &
             (df.n_ues == n) & (df.spatial == spatial) &
             (df.traffic == traffic))

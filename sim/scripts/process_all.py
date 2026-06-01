@@ -25,8 +25,10 @@ from pathlib import Path
 SIM_ROOT       = Path(__file__).parent.parent.resolve()
 ANALYZE_SCRIPT = SIM_ROOT / "scripts" / "analyze_run.py"
 PHASES = [
-    ("phase2_group_a", SIM_ROOT / "results" / "raw" / "phase2_group_a"),
-    ("phase3_group_b", SIM_ROOT / "results" / "raw" / "phase3_group_b"),
+    ("phase2_group_a",   SIM_ROOT / "results" / "raw" / "phase2_group_a"),
+    ("phase3_group_b",   SIM_ROOT / "results" / "raw" / "phase3_group_b"),
+    ("phase4_extent_a",  SIM_ROOT / "results" / "raw" / "phase4_extent_a"),
+    ("phase4_extent_b",  SIM_ROOT / "results" / "raw" / "phase4_extent_b"),
 ]
 OUT = SIM_ROOT / "results" / "processed" / "master.csv"
 
