@@ -1,0 +1,551 @@
+% =============================================================================
+% Evaluación de paradigmas de scheduling en sistemas OFDMA
+% bajo tráfico y condiciones espaciales heterogéneas
+%
+% Formato: IEEE Conference Proceedings (IEEEtran)
+% Compilar: pdflatex main.tex && bibtex main && pdflatex main.tex (×2)
+%           o usar: make
+% =============================================================================
+
+\documentclass[conference]{IEEEtran}
+
+% Paquetes
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{microtype}
+
+\graphicspath{{figures/}}
+
+% Metadatos
+\title{Evaluación de Paradigmas de Scheduling en Sistemas OFDMA bajo Heterogeneidad Espacial y de Tráfico}
+
+\author{
+  \IEEEauthorblockN{Alfonso García}
+  \IEEEauthorblockA{
+    Maestría en Ciencias de la Computación\\
+    Benemérita Universidad Autónoma de Puebla\\
+    Puebla, México\\
+    \texttt{alfonso.089911@gmail.com}
+  }
+}
+
+\begin{document}
+
+\maketitle
+
+% =============================================================================
+\begin{abstract}
+Los schedulers de enlace descendente en redes OFDMA deben equilibrar simultáneamente
+eficiencia espectral, equidad y calidad de servicio (QoS) bajo condiciones heterogéneas
+de canal y tráfico. Este trabajo presenta una evaluación sistemática de siete paradigmas
+de scheduling —clasificados según la taxonomía de Capozzi et al.~\cite{capozzi2012}—
+mediante 1{,}680 simulaciones en ns-3.47 con módulo LTE. Se evalúan cuatro hipótesis
+que relacionan la distribución espacial de usuarios, el número de usuarios, el tipo de
+tráfico y el rendimiento de cada scheduler. Los resultados muestran que los schedulers
+orientados a throughput (MT) presentan starvation sistemática bajo distribución
+clusterizada; que la carga de usuarios impacta más en la equidad que la distribución
+espacial (resultado negativo de H2); que el tráfico heterogéneo reduce el throughput
+de celda en todos los schedulers, siendo M-LWDF el más agresivo en protección GBR;
+y que los schedulers QoS-aware (M-LWDF, PSS) superan significativamente a PF en
+equidad bajo condiciones exigentes (D2+T2, $p<0.001$, $d\approx5$). Los hallazgos
+orientan la selección de schedulers para escenarios eMBB, URLLC y mMTC en redes LTE/5G.
+\end{abstract}
+
+\begin{IEEEkeywords}
+OFDMA, scheduling, LTE, fairness, QoS, heterogeneidad espacial, tráfico heterogéneo, ns-3
+\end{IEEEkeywords}
+
+% =============================================================================
+\section{Introducción}
+
+Las redes inalámbricas basadas en OFDMA, como LTE y NR-5G, requieren mecanismos
+de asignación dinámica de recursos capaces de operar bajo condiciones heterogéneas
+de canal, movilidad y tráfico \cite{dahlman}. El scheduler de la estación base (eNodeB)
+asigna bloques de recursos (RBs) por cada intervalo de transmisión (TTI = 1~ms)
+maximizando simultáneamente múltiples objetivos que son inherentemente conflictivos:
+maximizar el throughput de celda, mantener la equidad entre usuarios, cumplir requisitos
+de QoS por flujo y minimizar el retardo \cite{capozzi2012}.
+
+Los schedulers clásicos —Round Robin (RR), Maximum Throughput (MT) y Proportional
+Fair (PF)— son bien estudiados en condiciones homogéneas \cite{pf1999}. Sin embargo,
+escenarios reales presentan usuarios distribuidos de forma no uniforme respecto a la
+antena (heterogeneidad espacial) y tráfico con requisitos de QoS heterogéneos
+(video GBR, gaming GBR, best-effort). La literatura carece de evaluaciones sistemáticas
+que aíslen el efecto de cada dimensión de heterogeneidad sobre el desempeño de la
+taxonomía completa de schedulers.
+
+\textbf{Contribución.} Este trabajo evalúa siete paradigmas de scheduling bajo un
+diseño factorial 2×2 (distribución espacial × tipo de tráfico) con variación en número
+de usuarios (N=\{10,~20,~40\}), respondiendo cuatro hipótesis explícitas. Se emplea
+ns-3.47 con módulo LTE y fading EPA 3~km/h como entorno controlado y reproducible
+(1{,}680 corridas, 20 repeticiones por configuración).
+
+La Sección~\ref{sec:marco} introduce el marco teórico. La Sección~\ref{sec:arte}
+revisa el estado del arte. La Sección~\ref{sec:metodo} describe la metodología.
+La Sección~\ref{sec:resultados} presenta los resultados. La Sección~\ref{sec:discusion}
+los discute y la Sección~\ref{sec:conclusiones} concluye.
+
+% =============================================================================
+\section{Marco Teórico}
+\label{sec:marco}
+
+\subsection{OFDMA y asignación de recursos en LTE}
+
+En LTE, el espectro de 10~MHz se divide en 50 bloques de recursos (RBs) de 180~kHz.
+En cada TTI, el scheduler asigna RBs a usuarios según el canal reportado mediante
+el indicador de calidad de canal (CQI). El CQI refleja la relación señal-a-interferencia-
+más-ruido (SINR) en cada RB, permitiendo a los schedulers channel-aware explotar la
+diversidad multiusuario \cite{lte3gpp}.
+
+\subsection{Métricas de evaluación}
+
+\textbf{Throughput de celda} ($T_c$): suma del throughput por usuario en Mbps.
+
+\textbf{Índice de Jain} ($J$): medida de equidad de asignación de recursos \cite{jain1984}:
+\begin{equation}
+  J(x_1,\ldots,x_n) = \frac{\left(\sum_{i=1}^{n} x_i\right)^2}{n \cdot \sum_{i=1}^{n} x_i^2}
+  \label{eq:jain}
+\end{equation}
+donde $x_i$ es el throughput del usuario $i$. $J \in [1/n, 1]$; $J=1$ indica equidad perfecta.
+
+\textbf{Retardo E2E} ($D$): retardo medio extremo a extremo por flujo IP (FlowMonitor).
+
+\textbf{PLR}: tasa de pérdida de paquetes = $(N_{tx}-N_{rx})/N_{tx}$ por flujo.
+
+\subsection{Taxonomía de Capozzi}
+
+Capozzi et al.~\cite{capozzi2012} clasifican los schedulers LTE en cinco categorías.
+Este trabajo activa las tres relevantes para redes heterogéneas:
+
+\begin{itemize}
+  \item \textbf{(i) Channel-unaware / QoS-unaware}: no utiliza CQI ni restricciones de
+        QoS. Representantes: RR, BET.
+  \item \textbf{(ii) Channel-aware / QoS-unaware}: explota CQI pero no distingue
+        tipos de flujo. Representantes: MT, TTA, PF.
+  \item \textbf{(iii) Channel-aware / QoS-aware}: combina CQI con restricciones de
+        delay/bitrate por flujo. Representantes: M-LWDF, PSS.
+\end{itemize}
+
+Las categorías (iv) semi-persistent y (v) energy-aware se descartan por tener
+objetivos de optimización incompatibles con las métricas evaluadas.
+
+\subsection{Algoritmos evaluados}
+
+La Tabla~\ref{tab:schedulers} resume los siete schedulers. Las métricas clave son:
+
+\textbf{PF}: $m_i(t) = r_i(t) / \bar{r}_i(t)$ donde $r_i(t)$ es la tasa instantánea y
+$\bar{r}_i(t)$ el throughput histórico promedio.
+
+\textbf{M-LWDF}: $m_i(t) = -\log(\delta_i) \cdot D_i(t) \cdot r_i(t) / \bar{r}_i(t)$
+donde $\delta_i$ es la PLR objetivo y $D_i(t)$ el delay HOL \cite{mlwdf2001}.
+
+\textbf{PSS}: asignación en dos etapas — TDPS prioriza UEs GBR con delay elevado;
+FDPS aplica PF dentro del grupo seleccionado \cite{pss2006}.
+
+\begin{table}[t]
+  \centering
+  \caption{Schedulers evaluados — esquema 2-3-2 de la taxonomía Capozzi}
+  \label{tab:schedulers}
+  \footnotesize
+  \begin{tabular}{@{}llll@{}}
+    \toprule
+    \textbf{Scheduler} & \textbf{Cat.} & \textbf{Clase ns-3} & \textbf{Característica} \\
+    \midrule
+    RR     & (i)   & RrFfMacScheduler     & Tiempo igual por UE \\
+    BET    & (i)   & FdBetFfMacScheduler  & Throughput igual por UE \\
+    MT     & (ii)  & TdMtFfMacScheduler   & Maximiza tasa instantánea \\
+    TTA    & (ii)  & TtaFfMacScheduler    & Normaliza por tasa wideband \\
+    PF     & (ii)  & PfFfMacScheduler     & Proporcional histórico \\
+    M-LWDF & (iii) & MlwdfFfMacScheduler  & Delay HOL + canal (impl.) \\
+    PSS    & (iii) & PssFfMacScheduler    & Separación GBR/non-GBR \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% =============================================================================
+\section{Estado del Arte}
+\label{sec:arte}
+
+La comparación de schedulers LTE ha sido ampliamente estudiada. Capozzi et al.~\cite{capozzi2012}
+proveen la evaluación más completa bajo distribución uniforme y tráfico homogéneo.
+Andrews et al.~\cite{mlwdf2001} propusieron M-LWDF para redes 1xEV-DO; su extensión
+a LTE demuestra ventaja en throughput GBR bajo tráfico mixto. PSS fue propuesto
+para equilibrar QoS y throughput en LTE mediante la separación de schedulers por
+tipo de bearer \cite{pss2006}.
+
+Trabajos recientes evalúan schedulers bajo condiciones específicas: heterogeneidad
+de tráfico \cite{tta2007}, carga variable \cite{bet2004}, o múltiples celdas.
+Sin embargo, ningún trabajo evalúa sistemáticamente el efecto combinado de la
+\emph{distribución espacial clusterizada} y la \emph{heterogeneidad de tráfico}
+sobre la taxonomía completa de schedulers con análisis estadístico formal
+(IC 95\%, Welch $t$-test). Esta es la brecha que este trabajo aborda.
+
+% =============================================================================
+\section{Metodología}
+\label{sec:metodo}
+
+\subsection{Entorno de simulación}
+
+Se utiliza ns-3.47 con módulo LTE/EPC. Los parámetros fijos se resumen en la
+Tabla~\ref{tab:params}. Se aplican cinco correcciones al entorno base (\emph{Fix1--Fix5}):
+fading EPA 3~km/h (TraceFadingLossModel), tráfico full-buffer (OnOff siempre activo
+a 10~Mbps/UE), asignación interleaved de tráfico ($u \bmod 3$), clusters a distancias
+diferenciadas (C1=100~m, C2=250~m, C3=400~m), y FlowMonitor para métricas E2E.
+
+\begin{table}[t]
+  \centering
+  \caption{Parámetros fijos de simulación}
+  \label{tab:params}
+  \footnotesize
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{Parámetro} & \textbf{Valor} \\
+    \midrule
+    Simulador          & ns-3.47, módulo LTE \\
+    eNodeBs            & 1 (celda única) \\
+    Potencia TX eNB    & 46~dBm \\
+    Frecuencia DL      & 2.1~GHz (EARFCN 100) \\
+    Ancho de banda DL  & 10~MHz $\to$ 50~RBs \\
+    Path loss          & Log-distance, $\alpha$=3.5 \\
+    Fading             & TraceFadingLossModel EPA 3~km/h \\
+    CQI                & Dinámico, full-bandwidth, 1~TTI \\
+    EPC                & PointToPointEpcHelper \\
+    Protocolo          & UDP extremo a extremo \\
+    Duración           & 30~s (warmup 5~s descartado) \\
+    Semilla RNG        & SetSeed(12345), SetRun(\emph{runId}) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Variables independientes y escenarios}
+
+\textbf{Distribución espacial:}
+\begin{itemize}
+  \item \textbf{D1 — Uniforme}: UEs distribuidos uniformemente en disco de radio 490~m.
+  \item \textbf{D2 — Clusterizada}: 3 clusters a distancias diferenciadas del eNB
+        (C1=100~m, C2=250~m, C3=400~m), radio de cluster 70~m, ángulos separados 120°.
+        Implementa la condición de canal heterogéneo explicitamente requerida.
+\end{itemize}
+
+\textbf{Tipo de tráfico:}
+\begin{itemize}
+  \item \textbf{T1 — Homogéneo}: todos los UEs con tráfico full-buffer (OnOff a 10~Mbps).
+        Capacidad ofrecida $\gg$ capacidad de celda ($\approx$20~Mbps), garantizando saturación.
+  \item \textbf{T2 — Heterogéneo}: asignación interleaved ($u \bmod 3$): video GBR (QCI-4,
+        1.5~Mbps), gaming GBR (QCI-3, 64~kbps), best-effort full-buffer. La asignación
+        interleaved garantiza que cada cluster recibe los tres tipos mezclados,
+        eliminando correlación posición-tráfico.
+\end{itemize}
+
+\subsection{Diseño experimental}
+
+El experimento completo comprende dos grupos:
+\begin{itemize}
+  \item \textbf{Grupo A} (H1, H2): 7 schedulers $\times$ D1/D2 $\times$ N$\in\{$10,20,40$\}$ $\times$ T1 $\times$ 20 runs = \textbf{840 corridas}.
+  \item \textbf{Grupo B} (H3, H4): 7 schedulers $\times$ D1/D2 $\times$ N$\in\{$10,20,40$\}$ $\times$ T2 $\times$ 20 runs = \textbf{840 corridas}.
+\end{itemize}
+
+\textbf{Total: 1{,}680 corridas.} Cada configuración utiliza 20 repeticiones con semillas
+independientes para obtener IC al 95\% (t-Student, $df=19$, $t_{crit}=2.093$).
+Las comparaciones entre schedulers emplean el test de Welch con umbral $p<0.05$.
+
+\subsection{Hipótesis de investigación}
+
+\begin{itemize}
+  \item[\textbf{H1}:] Los schedulers orientados a throughput presentan degradación no lineal de fairness bajo distribución clusterizada.
+  \item[\textbf{H2}:] La heterogeneidad espacial tiene mayor impacto sobre fairness que el número de usuarios.
+  \item[\textbf{H3}:] Los schedulers balanceados (PF) pierden eficiencia espectral cuando coexisten flujos GBR y best-effort.
+  \item[\textbf{H4}:] Los schedulers híbridos (M-LWDF, PSS) mejoran el compromiso fairness-throughput frente a PF bajo tráfico heterogéneo.
+\end{itemize}
+
+% =============================================================================
+\section{Resultados}
+\label{sec:resultados}
+
+\subsection{Escenario de referencia (N=20, D1, T1)}
+
+La Tabla~\ref{tab:referencia} muestra las métricas del escenario base. Se observan
+tres grupos bien diferenciados: (i) BET con equidad perfecta ($J\approx1.00$) pero
+throughput mínimo; (ii) PF, M-LWDF y PSS con throughput máximo ($\approx$14~Mbps)
+y fairness moderada ($J\approx0.75$); (iii) MT con throughput alto pero starvation
+severa ($J=0.116$, solo 6/20 UEs activos).
+
+\begin{table}[t]
+  \centering
+  \caption{Métricas de referencia — N=20, D1, T1 (media ± IC 95\%)}
+  \label{tab:referencia}
+  \footnotesize
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Scheduler} & \textbf{Cat.} & \textbf{Tput [Mbps]} & \textbf{Jain} & \textbf{UEs activos} \\
+    \midrule
+    RR     & (i)   & 7.22 ± 0.60   & 0.642 ± 0.040 & 20/20 \\
+    BET    & (i)   & 4.32 ± 0.27   & 0.999 ± 0.000 & 20/20 \\
+    MT     & (ii)  & 11.09 ± 0.19  & 0.116 ± 0.023 & 6/20  \\
+    TTA    & (ii)  & 10.04 ± 0.68  & 0.777 ± 0.035 & 20/20 \\
+    PF     & (ii)  & 14.16 ± 0.84  & 0.747 ± 0.023 & 20/20 \\
+    M-LWDF & (iii) & 14.16 ± 0.84  & 0.747 ± 0.023 & 20/20 \\
+    PSS    & (iii) & 14.53 ± 0.91  & 0.707 ± 0.033 & 20/20 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{H1: Fairness bajo distribución clusterizada}
+
+La Fig.~\ref{fig:f2} muestra el índice de Jain vs N bajo D1, y la Fig.~\ref{fig:f3}
+bajo D2. El efecto más visible de D2 es en MT: su Jain se mantiene bajo en ambas
+distribuciones (D1: 0.116, D2: 0.135), indicando que la starvation existía ya en D1
+por el efecto del fading. En D2, la starvation se vuelve \emph{sistemática}: los UEs
+del cluster C3 (400~m) son ignorados consistentemente. PF, M-LWDF y PSS muestran
+Jain prácticamente idéntico en D1 y D2, evidenciando robustez ante la heterogeneidad
+espacial. TTA presenta la mayor sensibilidad al clustering: Jain cae de 0.777 (D1)
+a 0.729 (D2) con N=20.
+
+La Fig.~\ref{fig:f1} muestra el throughput bajo D1. MT permanece estable
+($\approx$11~Mbps) independiente de N porque siempre encuentra UEs con buen canal.
+BET decrece con N al distribuir tiempo hacia UEs de canal débil. La Fig.~\ref{fig:f4}
+sintetiza el efecto de D1→D2 para N=20.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F1_throughput_vs_N_D1.pdf}
+  \caption{Throughput de celda vs N (D1 uniforme, T1 full-buffer). Las barras representan IC 95\%.}
+  \label{fig:f1}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F2_jain_vs_N_D1.pdf}
+  \caption{Índice de Jain vs N (D1 uniforme, T1). BET mantiene equidad perfecta; MT cae con N.}
+  \label{fig:f2}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F3_jain_vs_N_D2.pdf}
+  \caption{Índice de Jain vs N (D2 clusterizado, T1). TTA es el más sensible a D2.}
+  \label{fig:f3}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F4_jain_D1vsD2_N20_T1.pdf}
+  \caption{Fairness D1 vs D2 (N=20, T1). Las barras rayadas representan D2.}
+  \label{fig:f4}
+\end{figure}
+
+\textbf{H1: parcialmente confirmada.} MT presenta starvation tanto en D1 como en D2;
+el Jain no cae significativamente entre distribuciones ($p=0.23$) porque ya estaba
+en el piso. La degradación de H1 es más visible en TTA (-6.2\%) que en MT.
+
+\subsection{H2: Efecto espacial vs número de usuarios}
+
+La Tabla~\ref{tab:h2} compara $|\Delta J_{D1\to D2}|$ (efecto espacial con N=20)
+contra $|\Delta J_{N=10\to 40}|$ (efecto de carga con D1 fijo).
+
+\begin{table}[t]
+  \centering
+  \caption{Comparación de efectos: distribución espacial vs carga}
+  \label{tab:h2}
+  \footnotesize
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    \textbf{Scheduler} & $|\Delta J|$ \textbf{espacial} & $|\Delta J|$ \textbf{carga} & \textbf{Domina} \\
+    \midrule
+    RR     & 0.009 & 0.024 & Carga \\
+    BET    & 0.000 & 0.001 & Carga \\
+    MT     & 0.020 & 0.121 & Carga \\
+    TTA    & 0.048 & 0.047 & \textbf{Espacial} \\
+    PF     & 0.000 & 0.011 & Carga \\
+    M-LWDF & 0.000 & 0.011 & Carga \\
+    PSS    & 0.015 & 0.053 & Carga \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{H2: no confirmada} para 6/7 schedulers. El incremento de carga (N: 10→40)
+impacta más en equidad que el cambio de distribución (D1→D2). Únicamente TTA
+muestra dominancia marginal del efecto espacial. Los schedulers channel-aware con
+historial proporcional (PF, M-LWDF) absorben eficientemente la heterogeneidad
+geográfica, siendo la saturación de la celda el factor dominante.
+
+\subsection{H3: Efecto del tráfico heterogéneo}
+
+La Fig.~\ref{fig:f5} muestra el throughput bajo T1 vs T2 (N=20, D1). Todos los
+schedulers experimentan reducción: RR~-12.2\%, BET~-19.4\%, MT~-1.2\%,
+TTA~-6.0\%, PF~-19.1\%, M-LWDF~-31.2\%, PSS~-26.9\%. La reducción de M-LWDF
+(-31.2\%) es la mayor de todas, aparentemente paradójica: M-LWDF prioriza
+agresivamente los flujos GBR (video+gaming), reduciendo la capacidad disponible
+para BE y, por tanto, el throughput total. MT casi no cambia (-1.2\%) porque
+ignora completamente el tipo de bearer.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F5_throughput_T1vsT2_N20_D1.pdf}
+  \caption{Throughput T1 vs T2 (N=20, D1). M-LWDF sacrifica más throughput total al priorizar GBR.}
+  \label{fig:f5}
+\end{figure}
+
+La Fig.~\ref{fig:f6} desglosa el throughput GBR vs BE bajo T2. M-LWDF y PSS
+asignan más capacidad a los flujos GBR (video+gaming) a expensas de BE,
+justificando la mayor caída de throughput total. PF trata ambos tipos por igual.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F6_GBR_vs_BE_N20_D1_T2.pdf}
+  \caption{Throughput GBR vs BE (N=20, D1, T2). Los schedulers QoS-aware redistribuyen capacidad hacia GBR.}
+  \label{fig:f6}
+\end{figure}
+
+La diferencia de throughput PF T1 vs T2 es estadísticamente significativa
+($t=+4.96$, $p<0.001$, $d=1.57$). \textbf{H3: confirmada.}
+
+\subsection{H4: Schedulers QoS-aware bajo tráfico heterogéneo}
+
+La Fig.~\ref{fig:f8} compara el índice de Jain bajo T2 para D1 y D2. En D1, los
+tres schedulers (PF, M-LWDF, PSS) tienen Jain similar ($\approx$0.56). En D2, M-LWDF
+(0.596) y PSS (0.596) superan significativamente a PF (0.543).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F8_jain_D1vsD2_N20_T2.pdf}
+  \caption{Índice de Jain en T2: D1 vs D2. M-LWDF y PSS superan a PF en D2 ($p<0.001$).}
+  \label{fig:f8}
+\end{figure}
+
+El efecto es contraintuitivo: M-LWDF y PSS \emph{mejoran} su Jain al pasar de D1 a D2
+(+0.032 y +0.044 respectivamente), mientras PF lo reduce (-0.018). La razón: con tráfico
+interleaved, los UEs GBR de C3 (400~m, SINR bajo) recibirían starvation bajo PF por
+competir desventajosamente con UEs de C1. M-LWDF y PSS los rescatan vía prioridad
+de delay HOL, elevando el throughput de UEs distantes y mejorando el Jain global.
+
+La Tabla~\ref{tab:h4} muestra los tests de Welch para D2.
+
+\begin{table}[t]
+  \centering
+  \caption{Tests de Welch: Jain T2, N=20, D2 clusterizado}
+  \label{tab:h4}
+  \footnotesize
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    \textbf{Comparación} & $\bar{A}$ & $\bar{B}$ & $p$-value & $d$ \\
+    \midrule
+    M-LWDF vs PF & 0.596 & 0.543 & $<$0.001 & +5.14 \\
+    PSS vs PF    & 0.596 & 0.543 & $<$0.001 & +4.72 \\
+    PSS vs M-LWDF & 0.596 & 0.596 & 0.953 & +0.02 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+El retardo E2E (Fig.~\ref{fig:f7}) es similar entre schedulers ($\approx$3.2--3.3~ms),
+muy por debajo de los SLA de delay ($\tau_{video}$=300~ms, $\tau_{gaming}$=50~ms),
+indicando que todos cumplen los requisitos de latencia bajo la carga evaluada.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{F7_delay_D1vsD2_N20_T2.pdf}
+  \caption{Retardo E2E: D1 vs D2 (N=20, T2). Todos los schedulers cumplen SLA de delay.}
+  \label{fig:f7}
+\end{figure}
+
+\textbf{H4: confirmada} en D2+T2 con alta significancia estadística ($p<0.001$, $d\approx5$).
+
+% =============================================================================
+\section{Discusión}
+\label{sec:discusion}
+
+\subsection{Trade-off throughput vs fairness}
+
+Los resultados confirman el trade-off fundamental de la taxonomía: mayor orientación
+a throughput implica menor equidad. MT alcanza 11.09~Mbps pero con Jain=0.116 y
+6/20 UEs servidos. BET logra Jain=1.000 con solo 4.32~Mbps. PF equilibra ambos
+objetivos (14.16~Mbps, Jain=0.747). Este trade-off persiste en todas las condiciones
+evaluadas, confirmando que no existe scheduler óptimo en todos los objetivos
+simultáneamente.
+
+\subsection{H2: resultado negativo valioso}
+
+El resultado negativo de H2 —que la carga domina sobre la distribución espacial—
+tiene implicaciones prácticas importantes: los operadores deben preocuparse más
+por la saturación de la celda que por la distribución geográfica de los usuarios,
+al menos cuando se usan schedulers channel-aware. PF y M-LWDF absorben la
+heterogeneidad espacial mediante sus métricas proporcionales/históricas.
+
+\subsection{Implicaciones por tipo de servicio}
+
+\begin{itemize}
+  \item \textbf{eMBB} (enhanced Mobile Broadband): PF o PSS maximizan throughput
+        con equidad aceptable. MT solo es adecuado si hay usuarios prioritarios explícitos.
+  \item \textbf{URLLC} (Ultra-Reliable Low-Latency): M-LWDF, con su métrica de
+        delay HOL, garantiza el menor retardo para flujos críticos bajo T2.
+  \item \textbf{mMTC} (massive Machine-Type Communications): BET ofrece equidad
+        perfecta para grandes poblaciones de dispositivos con tráfico esporádico.
+\end{itemize}
+
+\subsection{Limitaciones}
+
+El estudio utiliza una celda única sin interferencia inter-celda. Los UEs son
+estáticos (ConstantPositionMobilityModel). El fading EPA 3~km/h modela usuarios
+peatonales pero no escenarios vehiculares. Estas simplificaciones son apropiadas
+para aislar los efectos estudiados pero limitan la generalización directa a redes
+multi-celda con alta movilidad.
+
+% =============================================================================
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+Este trabajo presentó una evaluación sistemática de siete paradigmas de scheduling
+OFDMA bajo heterogeneidad espacial y de tráfico. Las conclusiones principales son:
+
+\begin{enumerate}
+  \item \textbf{H1 (parcial):} MT presenta starvation sistemática en D2 (UEs de C3
+        ignorados por canal débil), pero el Jain global no cae significativamente
+        entre D1 y D2 porque ya estaba en el piso bajo fading.
+
+  \item \textbf{H2 (no confirmada):} La carga de usuarios (N: 10→40) impacta más
+        en equidad que la distribución espacial para 6/7 schedulers. Los algoritmos
+        channel-aware son robustos a la heterogeneidad geográfica.
+
+  \item \textbf{H3 (confirmada):} El tráfico heterogéneo reduce el throughput de
+        celda en todos los schedulers. M-LWDF sufre la mayor reducción (-31.2\%)
+        porque prioriza agresivamente GBR, redistribuyendo capacidad desde BE.
+
+  \item \textbf{H4 (confirmada):} En el escenario más exigente (D2+T2), M-LWDF y PSS
+        superan a PF en equidad ($p<0.001$, $d\approx5$) al proteger UEs GBR
+        distantes mediante prioridad de delay.
+\end{enumerate}
+
+\textbf{Respuesta a la pregunta central:} No es posible satisfacer simultáneamente
+throughput máximo, fairness perfecta y QoS bajo todos los escenarios con un único
+scheduler. Sin embargo, PF bajo T1 y M-LWDF/PSS bajo T2 ofrecen el mejor
+compromiso práctico para redes LTE heterogéneas. La elección óptima depende del
+perfil de tráfico dominante de la celda.
+
+\textbf{Trabajo futuro:} Evaluación en entornos multi-celda con interferencia,
+modelos de movilidad vehicular, y extensión a schedulers 5G-NR con soporte
+de network slicing.
+
+% =============================================================================
+\section*{Agradecimientos}
+
+El autor agradece al grupo de Redes de Computadoras de la BUAP por el acceso
+a la infraestructura de cómputo utilizada en este trabajo.
+
+% =============================================================================
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
