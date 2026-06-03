@@ -446,12 +446,7 @@ File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 ) [1
 
 
-]
-Overfull \hbox (4.0541pt too wide) in paragraph at lines 198--211
- [][] 
- []
-
-[2] [3]
+] [2] [3]
 File: figures//F1_throughput_vs_N_D1.pdf Graphic file (type pdf)
 <use figures//F1_throughput_vs_N_D1.pdf>
 File: figures//F2_jain_vs_N_D1.pdf Graphic file (type pdf)
@@ -461,16 +456,17 @@ File: figures//F3_jain_vs_N_D2.pdf Graphic file (type pdf)
 File: figures//F4_jain_D1vsD2_N20_T1.pdf Graphic file (type pdf)
 <use figures//F4_jain_D1vsD2_N20_T1.pdf>
  [4]
+[5]
 File: figures//F5_throughput_T1vsT2_N20_D1.pdf Graphic file (type pdf)
 <use figures//F5_throughput_T1vsT2_N20_D1.pdf>
- [5]
 File: figures//F6_GBR_vs_BE_N20_D1_T2.pdf Graphic file (type pdf)
 <use figures//F6_GBR_vs_BE_N20_D1_T2.pdf>
+ [6]
 File: figures//F8_jain_D1vsD2_N20_T2.pdf Graphic file (type pdf)
 <use figures//F8_jain_D1vsD2_N20_T2.pdf>
 File: figures//F7_delay_D1vsD2_N20_T2.pdf Graphic file (type pdf)
 <use figures//F7_delay_D1vsD2_N20_T2.pdf>
- [6] [7] (main.bbl [8])
+ [7] [8] (main.bbl)
 
 ** Conference Paper **
 Before submitting the final camera ready copy, remember to:
@@ -482,9 +478,7 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[9
-
-] (main.aux
+[9] (main.aux
 LaTeX Info: Redefining \. on input line 12.
 LaTeX Info: Redefining \% on input line 12.
 )
@@ -492,4 +486,4 @@ LaTeX Info: Redefining \% on input line 12.
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  )
-Output written on main.xdv (9 pages, 59028 bytes).
+Output written on main.xdv (9 pages, 63312 bytes).

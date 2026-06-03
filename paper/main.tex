@@ -515,7 +515,7 @@ schedulers.
 
 \begin{table}[t]
   \centering
-  \caption{¿Qué impacta más la equidad: la distribución o la carga?}
+  \caption{\textquestiondown{}Qué impacta más la equidad: la distribución o la carga?}
   \label{tab:h2}
   \footnotesize
   \begin{tabular}{@{}lccc@{}}
@@ -851,14 +851,14 @@ throughput de los schedulers channel-aware (PF $+37\%$, PSS $+40\%$ de D1 a D2) 
 concentra los recursos en UEs de canal eficiente. El clustering no es el problema que
 asumíamos; el problema es la carga.
 
-Quedan tres preguntas relevantes para trabajo futuro. Primera: ¿cómo cambia el ranking
+Quedan tres preguntas relevantes para trabajo futuro. Primera: \textquestiondown{}cómo cambia el ranking
 con interferencia inter-celda? En redes densas, M-LWDF podría ver amplificada su
 ventaja (más urgencia de delay HOL) o neutralizada (SINR demasiado baja para que
-cualquier scheduler ayude). Segunda: ¿qué pasa con N$>$40? Los datos sugieren que PF
+cualquier scheduler ayude). Segunda: \textquestiondown{}qué pasa con N$>$40? Los datos sugieren que PF
 mantiene throughput estable mientras MT lo mantiene también ---la curva de throughput
 de MT es casi plana con N--- pero el Jain de MT cae linealmente con N. Eventualmente
 habría un cruce donde M-LWDF o PSS superan también a MT en throughput bajo alta carga
-heterogénea. Tercera: ¿es viable un scheduler adaptativo que cambie entre PF y M-LWDF según la
+heterogénea. Tercera: \textquestiondown{}es viable un scheduler adaptativo que cambie entre PF y M-LWDF según la
 fracción de tráfico GBR en tiempo real? No lo sabemos. Los datos sugieren que tendría
 sentido, pero implementarlo en hardware real con latencia de 1~ms por TTI es otro problema.
 
