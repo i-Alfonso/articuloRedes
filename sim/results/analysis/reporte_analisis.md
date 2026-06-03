@@ -29,7 +29,7 @@
 |-----------|-----------|:-----------------:|--------|:----:|--------|:-----------:|
 | RR     | (i) | 7.224 | [6.621, 7.827] | 0.6419 | [0.6016, 0.6823] | 20/20 |
 | BET    | (i) | 4.315 | [4.047, 4.584] | 0.9996 | [0.9995, 0.9997] | 20/20 |
-| MT     | (ii) | 11.087 | [10.892, 11.283] | 0.1155 | [0.0927, 0.1384] | 6/20 |
+| MT     | (ii) | 11.087 | [10.892, 11.283] | 0.1155 | [0.0927, 0.1384] | 7/20 |
 | TTA    | (ii) | 10.036 | [9.359, 10.712] | 0.7768 | [0.7420, 0.8117] | 20/20 |
 | PF     | (ii) | 14.156 | [13.313, 15.000] | 0.7472 | [0.7246, 0.7697] | 20/20 |
 | M-LWDF | (iii) | 14.156 | [13.313, 15.000] | 0.7472 | [0.7246, 0.7697] | 20/20 |
@@ -68,7 +68,9 @@
 
 ### 2.3 Interpretación
 
-MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 0.135, +17.2%), confirmando H1. Al concentrar todos los RBs en los UEs del cluster C1 (100 m, SINR alto), los UEs de C3 (400 m) quedan en starvation total. PF reduce su Jain de manera más moderada (0.747 → 0.747, +0.0%) porque la métrica proporcional histórica aún compensa parcialmente la diferencia de canal. BET mantiene fairness casi perfecta en ambas distribuciones (0.9996 → 0.9996, -0.00%) al distribuir tiempo de forma inversa al throughput acumulado, aunque a costo de throughput de celda reducido.
+**MT:** Su Jain es bajo tanto en D1 (0.1155) como en D2 (0.1354). El ligero aumento (+0.0199) se debe a que en D2, los UEs de C1 (todos con SINR similar) se turnan los recursos más equitativamente entre sí. Lo que confirma H1 no es el Jain global sino la starvation sistemática: los UEs de C3 reciben cero bytes de forma consistente, algo que en D1 (distribución uniforme con fading) ocurría de forma rotatoria. **El scheduler con la mayor caída real de Jain** al pasar a D2 es TTA (0.7768 → 0.7289, -0.0479), no MT.
+
+**PF:** prácticamente sin cambio (0.7472 → 0.7473), el historial proporcional compensa la heterogeneidad espacial. **BET:** equidad perfecta en ambas distribuciones (0.9996 → 0.9996), aunque con throughput reducido.
 
 ---
 
@@ -139,7 +141,9 @@ MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 
 
 ### 4.4 Interpretación
 
-Bajo tráfico heterogéneo (T2), PF reduce su throughput de celda de 14.16 Mbps (T1) a 11.46 Mbps (T2) porque los flujos GBR (video y gaming) tienen tasas más bajas que los full-buffer BE, dejando capacidad sin utilizar en algunos TTIs. M-LWDF (9.75 Mbps) y PSS (10.61 Mbps) mantienen throughput comparable porque priorizan activamente los flujos GBR basándose en delay HOL y umbrales de QoS, garantizando que sus buffers se vacíen eficientemente en cada TTI.
+Bajo tráfico heterogéneo (T2), todos los schedulers reducen su throughput de celda excepto CQA. PF baja de 14.16 a 11.46 Mbps (-19.1%) porque los flujos GBR tienen tasas máximas bajas y dejan capacidad sin usar. M-LWDF cae de 14.16 a 9.75 Mbps (-31.2%), la mayor caída: prioriza agresivamente GBR aunque sean de baja tasa, reduciendo los recursos disponibles para BE y con ello el throughput total.
+
+**Excepción — CQA:** es el único que GANA throughput bajo T2 (5.31 → 6.22 Mbps, +17.2%). Bajo T1 full-buffer, CQA actúa como equalizer (todos los UEs saturados con igual urgencia). Bajo T2, los flujos GBR de baja tasa reducen la presión de cola, CQA puede discriminar entre tipos de flujo y asignar más recursos al BE full-buffer que sí los usa, elevando el throughput total de celda.
 
 ---
 
@@ -176,7 +180,11 @@ Bajo tráfico heterogéneo (T2), PF reduce su throughput de celda de 14.16 Mbps 
 
 ### 5.4 Interpretación
 
-Bajo el escenario más exigente (D2 clusterizado, T2 heterogéneo), PSS (0.5961) y M-LWDF (0.5959) muestran Jain comparable a PF (0.5432). La diferencia de fairness es estadísticamente significativa cuando existe: los schedulers QoS-aware no sacrifican equidad al priorizar GBR porque alternan entre modo 'time-frequency domain' para GBR y 'best-effort' para BE, manteniendo el índice de Jain global estable. La verdadera ventaja de M-LWDF y PSS frente a PF en T2 está en el throughput GBR: priorizan los flujos de video y gaming según delay HOL y QoS, asegurando cumplimiento de SLA mientras PF los trata igual que BE.
+**H4 confirmada.** En D2+T2, M-LWDF (0.5959) y PSS (0.5961) superan claramente a PF (0.5432) en equidad global (p<0.001, d≈5). La diferencia es de +9.7% sobre PF — estadísticamente muy robusta.
+
+El mecanismo es clave: con tráfico interleaved y clustering, los UEs GBR de C3 (400m, SINR bajo) acumulan delay HOL rápidamente porque PF los penaliza por su mal canal. M-LWDF escala su prioridad cuando ese delay crece, rescatándolos y mejorando el Jain global. En D1 (sin clustering), no hay ventaja: PF=0.5613, M-LWDF=0.5640 — prácticamente idénticos (ns, d=0.06).
+
+H4 solo se activa en el escenario que la motiva: usuarios con canal heterogéneo (clustering) más tráfico con QoS diferenciado (T2).
 
 ---
 
