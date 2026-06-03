@@ -21,6 +21,8 @@ STATS      = SIM_ROOT / "results/processed/stats.csv"
 OUT_DIR    = SIM_ROOT / "results/analysis"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 REPORT     = OUT_DIR / "reporte_analisis.md"
+N_RUNS     = 1920  # 7 orig × 240 + CQA × 240
+N_SCHEDS   = 8
 
 SCHED_LABEL = {
     "rr": "RR", "bet": "BET", "mt": "MT", "tta": "TTA",
@@ -416,33 +418,50 @@ def analisis_extension(master, st):
             lines.append(f"| {SCHED_LABEL[s]:6} | n/d | n/d | n/d | n/d |")
     lines.append("")
 
-    lines.append("### 7.3 Test Welch — CQA vs PF en T2 D2 (robustez de H4)\n")
-    lines.append("| Comparación | Media A | Media B | t | p-value | Sig | Cohen's d |")
-    lines.append("|-------------|:-------:|:-------:|---|:-------:|-----|:---------:|")
+    lines.append("### 7.3 Test Welch — CQA vs PF en T2 (comparación directa)\n")
+    lines.append("| Comparación | Media CQA | Media PF | t | p-value | Sig | Cohen's d | CQA > PF? |")
+    lines.append("|-------------|:---------:|:--------:|---|:-------:|-----|:---------:|:---------:|")
     for sp in ["uniform", "clustered"]:
         try:
             a_cqa = get_vals(master, "cqa", "jain_index", sp, "heterogeneous", 20)
             a_pf  = get_vals(master, "pf",  "jain_index", sp, "heterogeneous", 20)
+            t, p, d, _, _ = welch(a_cqa, a_pf)
             sp_lbl = "D1" if sp == "uniform" else "D2"
-            lines.append(fmt_row(f"Jain(CQA vs PF) {sp_lbl}", a_cqa, a_pf, "CQA ≥ PF"))
+            supera = "✅ Sí" if np.mean(a_cqa) > np.mean(a_pf) else "❌ No"
+            lines.append(f"| Jain(CQA vs PF) {sp_lbl} | {np.mean(a_cqa):.4f} | "
+                         f"{np.mean(a_pf):.4f} | {t:+.2f} | {p:.4f} | {sig(p)} | {d:+.2f} | {supera} |")
         except (KeyError, IndexError):
             pass
     lines.append("")
 
     lines.append("### 7.4 Interpretación\n")
     try:
+        cqa_t2_d1 = get_stat(st, "cqa", "jain_index", "uniform",   "heterogeneous", 20)["jain_index_mean"]
         cqa_t2_d2 = get_stat(st, "cqa", "jain_index", "clustered", "heterogeneous", 20)["jain_index_mean"]
         pf_t2_d2  = get_stat(st, "pf",  "jain_index", "clustered", "heterogeneous", 20)["jain_index_mean"]
+        mlwdf_t2_d2 = get_stat(st, "mlwdf", "jain_index", "clustered", "heterogeneous", 20)["jain_index_mean"]
         cqa_t1_d1 = get_stat(st, "cqa", "jain_index", "uniform",   "homogeneous",   20)["jain_index_mean"]
+        if cqa_t2_d2 > pf_t2_d2:
+            h4_cqa = f"CQA ({cqa_t2_d2:.4f}) **supera a PF ({pf_t2_d2:.4f})** en T2+D2, confirmando H4 desde un tercer mecanismo."
+        else:
+            h4_cqa = (f"CQA ({cqa_t2_d2:.4f}) **no supera a PF ({pf_t2_d2:.4f})** en T2+D2. "
+                      f"A diferencia de M-LWDF ({mlwdf_t2_d2:.4f}) y PSS que escalan prioridad "
+                      f"exclusivamente por delay HOL, la métrica multi-criterio de CQA pondera también "
+                      f"el CQI instantáneo. Los UEs de C3 (400m, SINR bajo) tienen CQI bajo que "
+                      f"reduce su prioridad en CQA incluso cuando acumulan delay, a diferencia de "
+                      f"M-LWDF que escala prioridad puramente por delay sin importar el canal. "
+                      f"Esto muestra que dentro de cat(iii), el mecanismo específico sí importa: "
+                      f"no todos los QoS-aware rescatan igualmente a usuarios en zona de cobertura débil.")
         lines.append(
-            f"CQA confirma el patrón de H4 en T2+D2: Jain={cqa_t2_d2:.4f} frente a "
-            f"PF={pf_t2_d2:.4f}. Tres schedulers cat(iii) con mecanismos distintos "
-            f"(delay-driven, bearer-driven, multi-criterio) convergen al mismo resultado: "
-            f"todos superan a PF en equidad cuando los usuarios están clusterizados y el "
-            f"tráfico es heterogéneo. Esto robustece H4 más allá de un resultado puntual. "
-            f"El comportamiento atípico de CQA en T1 (Jain={cqa_t1_d1:.4f}, similar a BET) "
-            f"evidencia que la saturación total neutraliza los mecanismos QoS y el scheduler "
-            f"colapsa hacia un igualador por defecto."
+            f"**CQA bajo T1:** Jain={cqa_t1_d1:.4f} — comportamiento equalizer idéntico a BET. "
+            f"Bajo saturación total, los criterios QoS son equivalentes para todos los UEs y domina "
+            f"la componente de fairness.\n\n"
+            f"**CQA bajo T2+D2:** {h4_cqa}\n\n"
+            f"**Conclusión de la extensión:** M-LWDF y PSS confirman H4 robustamente. "
+            f"CQA aporta un matiz: dentro de la categoría (iii), el mecanismo de priorización "
+            f"determina si un scheduler puede rescatar UEs en zona débil bajo tráfico heterogéneo. "
+            f"El delay HOL puro (M-LWDF) es más efectivo que un criterio multi-factor (CQA) "
+            f"para ese objetivo específico."
         )
     except KeyError as e:
         lines.append(f"[Datos insuficientes: {e}]")
@@ -618,19 +637,15 @@ def analisis_figuras(st):
     lines.append("")
     lines.append("**Qué buscar — hallazgo clave:** PF baja su Jain al pasar de D1 a D2 "
                  "(-0.018), mientras M-LWDF y PSS la SUBEN (+0.032, +0.044). "
-                 "Las líneas se cruzan: en D1 los tres están al mismo nivel (~0.55), "
-                 "pero en D2 M-LWDF y PSS superan claramente a PF (0.596 vs 0.543). "
-                 "Diferencia altamente significativa (p<0.001, Cohen's d≈5).\n")
-    lines.append("**Por qué M-LWDF y PSS mejoran en D2:** Con distribución clusterizada y "
-                 "tráfico interleaved (u%3), cada cluster tiene ~1/3 de UEs GBR. Los UEs GBR "
-                 "de C3 (400m, SINR bajo) tendrían starvation bajo PF porque su canal "
-                 "compite desfavorablemente. M-LWDF y PSS los rescatan via delay-priority: "
-                 "cuando su delay HOL crece, reciben recursos independientemente de su canal. "
-                 "Esto eleva su throughput y mejora el Jain global.\n")
+                 "Las líneas de M-LWDF y PSS se cruzan con PF al pasar de D1 a D2: "
+                 "en D1 todos están al mismo nivel (~0.55), pero en D2 M-LWDF y PSS "
+                 "superan claramente a PF (0.596 vs 0.543, p<0.001, d≈5). "
+                 "CQA aparece en la figura con Jain ~0.40, por debajo de PF en ambas "
+                 "distribuciones — su mecanismo multi-criterio no rescata tan efectivamente "
+                 "a los UEs de C3 como el delay HOL puro de M-LWDF.\n")
     lines.append("**Para el paper:** Esta es la figura más importante para H4. "
-                 "Demuestra que en el escenario más exigente (D2+T2), los schedulers "
-                 "QoS-aware no solo protegen GBR sino que logran mejor fairness global "
-                 "que PF, confirmando H4 de forma contundente.\n")
+                 "M-LWDF y PSS confirman H4 de forma contundente. "
+                 "CQA muestra que dentro de cat(iii), el mecanismo específico importa.\n")
 
     return "\n".join(lines)
 
@@ -643,7 +658,7 @@ def resumen_ejecutivo(master, st):
     lines = []
     lines.append("# Reporte de Análisis — Evaluación de Schedulers OFDMA en LTE\n")
     lines.append(f"> Generado automáticamente desde `stats.csv` y `master.csv`  \n"
-                 f"> 1,680 corridas: 7 schedulers × 12 escenarios × 20 runs  \n"
+                 f"> {N_RUNS} corridas: {N_SCHEDS} schedulers (7 originales + CQA extensión cat iii)  \n"
                  f"> IC 95% con t-Student (df=19, t_crit=2.093)\n")
     lines.append("---\n")
     lines.append("## Resumen de hipótesis\n")
@@ -685,12 +700,11 @@ def main():
         "\n---\n",
         analisis_h3(master, st),
         "\n---\n",
+        analisis_h4(master, st),
+        "\n---\n",
         analisis_figuras(st),
         "\n---\n",
         analisis_extension(master, st),
-        "\n---\n",
-        "\n---\n",
-        analisis_h4(master, st),
     ]
 
     report = "\n".join(sections)

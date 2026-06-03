@@ -1,7 +1,7 @@
 # Reporte de Análisis — Evaluación de Schedulers OFDMA en LTE
 
 > Generado automáticamente desde `stats.csv` y `master.csv`  
-> 1,680 corridas: 7 schedulers × 12 escenarios × 20 runs  
+> 1920 corridas: 8 schedulers (7 originales + CQA extensión cat iii)  
 > IC 95% con t-Student (df=19, t_crit=2.093)
 
 ---
@@ -140,6 +140,43 @@ MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 
 ### 4.4 Interpretación
 
 Bajo tráfico heterogéneo (T2), PF reduce su throughput de celda de 14.16 Mbps (T1) a 11.46 Mbps (T2) porque los flujos GBR (video y gaming) tienen tasas más bajas que los full-buffer BE, dejando capacidad sin utilizar en algunos TTIs. M-LWDF (9.75 Mbps) y PSS (10.61 Mbps) mantienen throughput comparable porque priorizan activamente los flujos GBR basándose en delay HOL y umbrales de QoS, garantizando que sus buffers se vacíen eficientemente en cada TTI.
+
+---
+
+## 5. Hipótesis H4 — Schedulers QoS-aware mejoran fairness bajo T2
+
+> H4: Los schedulers híbridos (PSS) mejoran el compromiso fairness-throughput frente a PF simple bajo tráfico heterogéneo.
+
+### 5.1 Jain index T2 — PF vs M-LWDF vs PSS
+
+| Config | Jain PF | Jain M-LWDF | Jain PSS | Mejor fairness |
+|--------|:-------:|:-----------:|:--------:|:--------------:|
+| D1 N=20 uni T2 | 0.5613 | 0.5640 | 0.5526 | **M-LWDF** |
+| D2 N=20 clu T2 | 0.5432 | 0.5959 | 0.5961 | **PSS** |
+
+### 5.2 Tests de Welch (Jain T2, N=20, D2)
+
+| Comparación | Media A | Media B | t | p-value | Sig | Cohen's d | Dirección esperada |
+|-------------|:-------:|:-------:|---|:-------:|-----|:---------:|-------------------|
+| Jain(M-LWDF vs PF) D1 | 0.564 | 0.561 | +0.19 | 0.8504 | ns | +0.06 | M-LWDF ≥ PF |
+| Jain(PSS vs PF) D1 | 0.553 | 0.561 | -0.66 | 0.5128 | ns | -0.21 | PSS ≥ PF |
+| Jain(PSS vs M-LWDF) D1 | 0.553 | 0.564 | -1.38 | 0.1758 | ns | -0.44 | PSS ≥ M-LWDF |
+| Jain(M-LWDF vs PF) D2 | 0.596 | 0.543 | +16.27 | 0.0000 | *** | +5.14 | M-LWDF ≥ PF |
+| Jain(PSS vs PF) D2 | 0.596 | 0.543 | +14.93 | 0.0000 | *** | +4.72 | PSS ≥ PF |
+| Jain(PSS vs M-LWDF) D2 | 0.596 | 0.596 | +0.06 | 0.9531 | ns | +0.02 | PSS ≥ M-LWDF |
+
+### 5.3 PLR — Tasa de pérdida de paquetes (T2)
+
+| Scheduler | PLR D1 T2 | PLR D2 T2 |
+|-----------|:---------:|:---------:|
+| PF     | 0.0048 | 0.0029 |
+| M-LWDF | 0.0066 | 0.0040 |
+| PSS    | 0.0045 | 0.0027 |
+| CQA    | 0.0152 | 0.0097 |
+
+### 5.4 Interpretación
+
+Bajo el escenario más exigente (D2 clusterizado, T2 heterogéneo), PSS (0.5961) y M-LWDF (0.5959) muestran Jain comparable a PF (0.5432). La diferencia de fairness es estadísticamente significativa cuando existe: los schedulers QoS-aware no sacrifican equidad al priorizar GBR porque alternan entre modo 'time-frequency domain' para GBR y 'best-effort' para BE, manteniendo el índice de Jain global estable. La verdadera ventaja de M-LWDF y PSS frente a PF en T2 está en el throughput GBR: priorizan los flujos de video y gaming según delay HOL y QoS, asegurando cumplimiento de SLA mientras PF los trata igual que BE.
 
 ---
 
@@ -286,11 +323,9 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | PSS    | 0.5526 | 0.5961 | +0.0435 |
 | CQA    | 0.4192 | 0.4033 | -0.0158 |
 
-**Qué buscar — hallazgo clave:** PF baja su Jain al pasar de D1 a D2 (-0.018), mientras M-LWDF y PSS la SUBEN (+0.032, +0.044). Las líneas se cruzan: en D1 los tres están al mismo nivel (~0.55), pero en D2 M-LWDF y PSS superan claramente a PF (0.596 vs 0.543). Diferencia altamente significativa (p<0.001, Cohen's d≈5).
+**Qué buscar — hallazgo clave:** PF baja su Jain al pasar de D1 a D2 (-0.018), mientras M-LWDF y PSS la SUBEN (+0.032, +0.044). Las líneas de M-LWDF y PSS se cruzan con PF al pasar de D1 a D2: en D1 todos están al mismo nivel (~0.55), pero en D2 M-LWDF y PSS superan claramente a PF (0.596 vs 0.543, p<0.001, d≈5). CQA aparece en la figura con Jain ~0.40, por debajo de PF en ambas distribuciones — su mecanismo multi-criterio no rescata tan efectivamente a los UEs de C3 como el delay HOL puro de M-LWDF.
 
-**Por qué M-LWDF y PSS mejoran en D2:** Con distribución clusterizada y tráfico interleaved (u%3), cada cluster tiene ~1/3 de UEs GBR. Los UEs GBR de C3 (400m, SINR bajo) tendrían starvation bajo PF porque su canal compite desfavorablemente. M-LWDF y PSS los rescatan via delay-priority: cuando su delay HOL crece, reciben recursos independientemente de su canal. Esto eleva su throughput y mejora el Jain global.
-
-**Para el paper:** Esta es la figura más importante para H4. Demuestra que en el escenario más exigente (D2+T2), los schedulers QoS-aware no solo protegen GBR sino que logran mejor fairness global que PF, confirmando H4 de forma contundente.
+**Para el paper:** Esta es la figura más importante para H4. M-LWDF y PSS confirman H4 de forma contundente. CQA muestra que dentro de cat(iii), el mecanismo específico importa.
 
 
 ---
@@ -324,53 +359,17 @@ CQA bajo T1 produce Jain≈0.999 y throughput de ~5.3 Mbps, comportamiento casi 
 | PSS    | 10.614 | 0.5526 | 0.5961 | +0.0435 |
 | CQA    | 6.217 | 0.4192 | 0.4033 | -0.0158 |
 
-### 7.3 Test Welch — CQA vs PF en T2 D2 (robustez de H4)
+### 7.3 Test Welch — CQA vs PF en T2 (comparación directa)
 
-| Comparación | Media A | Media B | t | p-value | Sig | Cohen's d |
-|-------------|:-------:|:-------:|---|:-------:|-----|:---------:|
-| Jain(CQA vs PF) D1 | 0.419 | 0.561 | -11.18 | 0.0000 | *** | -3.54 | CQA ≥ PF |
-| Jain(CQA vs PF) D2 | 0.403 | 0.543 | -51.05 | 0.0000 | *** | -16.14 | CQA ≥ PF |
+| Comparación | Media CQA | Media PF | t | p-value | Sig | Cohen's d | CQA > PF? |
+|-------------|:---------:|:--------:|---|:-------:|-----|:---------:|:---------:|
+| Jain(CQA vs PF) D1 | 0.4192 | 0.5613 | -11.18 | 0.0000 | *** | -3.54 | ❌ No |
+| Jain(CQA vs PF) D2 | 0.4033 | 0.5432 | -51.05 | 0.0000 | *** | -16.14 | ❌ No |
 
 ### 7.4 Interpretación
 
-CQA confirma el patrón de H4 en T2+D2: Jain=0.4033 frente a PF=0.5432. Tres schedulers cat(iii) con mecanismos distintos (delay-driven, bearer-driven, multi-criterio) convergen al mismo resultado: todos superan a PF en equidad cuando los usuarios están clusterizados y el tráfico es heterogéneo. Esto robustece H4 más allá de un resultado puntual. El comportamiento atípico de CQA en T1 (Jain=0.9993, similar a BET) evidencia que la saturación total neutraliza los mecanismos QoS y el scheduler colapsa hacia un igualador por defecto.
+**CQA bajo T1:** Jain=0.9993 — comportamiento equalizer idéntico a BET. Bajo saturación total, los criterios QoS son equivalentes para todos los UEs y domina la componente de fairness.
 
----
+**CQA bajo T2+D2:** CQA (0.4033) **no supera a PF (0.5432)** en T2+D2. A diferencia de M-LWDF (0.5959) y PSS que escalan prioridad exclusivamente por delay HOL, la métrica multi-criterio de CQA pondera también el CQI instantáneo. Los UEs de C3 (400m, SINR bajo) tienen CQI bajo que reduce su prioridad en CQA incluso cuando acumulan delay, a diferencia de M-LWDF que escala prioridad puramente por delay sin importar el canal. Esto muestra que dentro de cat(iii), el mecanismo específico sí importa: no todos los QoS-aware rescatan igualmente a usuarios en zona de cobertura débil.
 
-
----
-
-## 5. Hipótesis H4 — Schedulers QoS-aware mejoran fairness bajo T2
-
-> H4: Los schedulers híbridos (PSS) mejoran el compromiso fairness-throughput frente a PF simple bajo tráfico heterogéneo.
-
-### 5.1 Jain index T2 — PF vs M-LWDF vs PSS
-
-| Config | Jain PF | Jain M-LWDF | Jain PSS | Mejor fairness |
-|--------|:-------:|:-----------:|:--------:|:--------------:|
-| D1 N=20 uni T2 | 0.5613 | 0.5640 | 0.5526 | **M-LWDF** |
-| D2 N=20 clu T2 | 0.5432 | 0.5959 | 0.5961 | **PSS** |
-
-### 5.2 Tests de Welch (Jain T2, N=20, D2)
-
-| Comparación | Media A | Media B | t | p-value | Sig | Cohen's d | Dirección esperada |
-|-------------|:-------:|:-------:|---|:-------:|-----|:---------:|-------------------|
-| Jain(M-LWDF vs PF) D1 | 0.564 | 0.561 | +0.19 | 0.8504 | ns | +0.06 | M-LWDF ≥ PF |
-| Jain(PSS vs PF) D1 | 0.553 | 0.561 | -0.66 | 0.5128 | ns | -0.21 | PSS ≥ PF |
-| Jain(PSS vs M-LWDF) D1 | 0.553 | 0.564 | -1.38 | 0.1758 | ns | -0.44 | PSS ≥ M-LWDF |
-| Jain(M-LWDF vs PF) D2 | 0.596 | 0.543 | +16.27 | 0.0000 | *** | +5.14 | M-LWDF ≥ PF |
-| Jain(PSS vs PF) D2 | 0.596 | 0.543 | +14.93 | 0.0000 | *** | +4.72 | PSS ≥ PF |
-| Jain(PSS vs M-LWDF) D2 | 0.596 | 0.596 | +0.06 | 0.9531 | ns | +0.02 | PSS ≥ M-LWDF |
-
-### 5.3 PLR — Tasa de pérdida de paquetes (T2)
-
-| Scheduler | PLR D1 T2 | PLR D2 T2 |
-|-----------|:---------:|:---------:|
-| PF     | 0.0048 | 0.0029 |
-| M-LWDF | 0.0066 | 0.0040 |
-| PSS    | 0.0045 | 0.0027 |
-| CQA    | 0.0152 | 0.0097 |
-
-### 5.4 Interpretación
-
-Bajo el escenario más exigente (D2 clusterizado, T2 heterogéneo), PSS (0.5961) y M-LWDF (0.5959) muestran Jain comparable a PF (0.5432). La diferencia de fairness es estadísticamente significativa cuando existe: los schedulers QoS-aware no sacrifican equidad al priorizar GBR porque alternan entre modo 'time-frequency domain' para GBR y 'best-effort' para BE, manteniendo el índice de Jain global estable. La verdadera ventaja de M-LWDF y PSS frente a PF en T2 está en el throughput GBR: priorizan los flujos de video y gaming según delay HOL y QoS, asegurando cumplimiento de SLA mientras PF los trata igual que BE.
+**Conclusión de la extensión:** M-LWDF y PSS confirman H4 robustamente. CQA aporta un matiz: dentro de la categoría (iii), el mecanismo de priorización determina si un scheduler puede rescatar UEs en zona débil bajo tráfico heterogéneo. El delay HOL puro (M-LWDF) es más efectivo que un criterio multi-factor (CQA) para ese objetivo específico.
