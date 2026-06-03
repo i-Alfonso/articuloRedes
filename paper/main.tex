@@ -290,6 +290,16 @@ o simplemente porque esos UEs están más cerca de la antena. La asignación $u 
 mezcla los tres tipos en cada cluster, haciendo la posición y el tipo de tráfico
 estadísticamente independientes.
 
+Una decisión que no tomamos bien al inicio: intentamos incluir TBFQ como cuarto
+representante de categoría (iii). Las primeras 120 corridas bajo tráfico full-buffer
+completaron sin errores aparentes, pero al revisar los logs de RLC encontramos que
+solo había datos en el intervalo 1.0--1.25~s. Después, nada. El scheduler dejaba de
+programar a todos los UEs simultáneamente. La causa: el parámetro por defecto
+\texttt{TokenPoolSize=1~byte} hace que el banco de tokens se agote en el primer
+segundo bajo saturación total. TBFQ presupone periodos de inactividad para recuperar
+créditos. Con 10~Mbps/UE $\times$ 20~UEs en una celda de $\approx$20~Mbps, eso
+nunca ocurre. Descartamos TBFQ y quedamos con CQA como única extensión.
+
 \begin{table}[t]
   \centering
   \caption{Parámetros fijos de simulación}
@@ -383,11 +393,12 @@ la celda en un monopolio. BET es el extremo opuesto: Jain=0.999 es casi perfecta
 justo, pero a costa de bajar el throughput de celda a 4.32~Mbps. PF, con 14.16~Mbps
 y Jain=0.747, es el equilibrio que la mayoría de los operadores elegiría por defecto.
 
-Lo que llama la atención de esta tabla es que PF y M-LWDF producen exactamente los
-mismos números bajo T1. Tiene sentido: M-LWDF es PF más un término de delay HOL.
-Con tráfico full-buffer todos los paquetes tienen delay similar, así que el término
-extra no cambia nada. M-LWDF solo se diferencia cuando hay flujos con restricciones
-de latencia distintas, es decir, bajo T2.
+Al revisar las primeras corridas, la columna de M-LWDF y PF tenía números idénticos
+hasta el último decimal. Pensamos que había un error en el script de análisis.
+No era un error: M-LWDF es PF más un término de delay HOL, y con full-buffer todos
+los paquetes acumulan delay similar --- el factor extra se vuelve constante para
+todos los usuarios y desaparece de la comparación. Solo bajo T2, cuando los flujos
+GBR y BE tienen urgencias distintas, M-LWDF y PF empiezan a divergir.
 
 \begin{table}[t]
   \centering
@@ -593,11 +604,11 @@ D2 sea irrelevante, sino que PF y M-LWDF se benefician de la estructura de canal
 
 \subsection{H3: Efecto del tráfico heterogéneo}
 
-Aquí aparece el resultado más contraintuitivo del trabajo. Al introducir tráfico
-heterogéneo (T2), el throughput de celda cae en todos los schedulers (Fig.~\ref{fig:f5}).
-Lo esperable. Lo inesperado es \emph{quién cae más}: M-LWDF baja un 31.2\% y PSS un
-26.9\%, mientras que MT ---el más agresivo en maximizar throughput--- casi no se mueve
-(-1.2\%).
+Al introducir tráfico heterogéneo (T2), el throughput de celda cae en todos los
+schedulers (Fig.~\ref{fig:f5}). Eso era esperable. Lo que no esperábamos es quién
+cae más: M-LWDF baja un 31.2\% y PSS un 26.9\%. MT, el más agresivo en maximizar
+throughput, casi no se mueve (-1.2\%). El scheduler diseñado para calidad de servicio
+pierde más throughput total que el que ignora completamente el tipo de tráfico.
 
 \begin{figure}[t]
   \centering
@@ -646,10 +657,10 @@ sin retardo ni pérdida ---a costa de dejar a 13 usuarios sin servicio.
 
 \subsection{H4: Schedulers QoS-aware bajo tráfico heterogéneo}
 
-La Fig.~\ref{fig:f8} es la más interesante del paper. Muestra el índice de Jain bajo
-T2 ---tráfico heterogéneo--- para D1 y D2. Cuando los usuarios están distribuidos
-uniformemente (D1), los tres schedulers QoS-aware tienen Jain similar: PF 0.561,
-M-LWDF 0.564, PSS 0.553. La diferencia es mínima y no significativa.
+La Fig.~\ref{fig:f8} muestra el índice de Jain bajo T2 para D1 y D2. Bajo
+distribución uniforme (D1), los tres schedulers QoS-aware tienen Jain similar:
+PF 0.561, M-LWDF 0.564, PSS 0.553. Sin diferencia estadística. Hasta aquí nada
+nuevo respecto al escenario de referencia.
 
 Cuando los usuarios están clusterizados (D2), las líneas se separan. PF baja a 0.543.
 M-LWDF y PSS suben a 0.596. La brecha es estadísticamente sólida ($p<0.001$, $d\approx5$;
@@ -829,11 +840,9 @@ indistinguible de M-LWDF cuando no hay restricciones de latencia diferenciadas.
 
 Si el tráfico mezcla flujos GBR con best-effort, y especialmente si los usuarios están
 agrupados en zonas de distinta calidad de canal, M-LWDF y PSS ofrecen una ventaja
-real en equidad global ($p<0.001$, $d\approx5$). La ganancia no es gratuita: ambos
-reducen el throughput total entre un 27 y un 31\% porque priorizan flujos de baja tasa.
-Esa es exactamente la decisión que el diseño de redes 5G con network slicing debería
-automatizar: asignar distintos schedulers a distintos slices según el perfil de tráfico
-dominante del slice, en lugar de usar uno universal.
+real en equidad global ($p<0.001$, $d\approx5$). La ganancia no es gratuita: ambos reducen el throughput total entre un 27 y un 31\%
+porque priorizan flujos de baja tasa. No hay forma de evitar ese intercambio ---al
+menos no con los schedulers evaluados.
 
 El resultado más valioso ---porque no lo anticipamos--- es doble. Primero: la carga de
 la celda afecta más la equidad que la distribución geográfica de los usuarios para 6 de
@@ -849,10 +858,9 @@ cualquier scheduler ayude). Segunda: ¿qué pasa con N$>$40? Los datos sugieren 
 mantiene throughput estable mientras MT lo mantiene también ---la curva de throughput
 de MT es casi plana con N--- pero el Jain de MT cae linealmente con N. Eventualmente
 habría un cruce donde M-LWDF o PSS superan también a MT en throughput bajo alta carga
-heterogénea. Tercera: ¿es viable un scheduler adaptativo que cambie entre PF y M-LWDF
-según la fracción de tráfico GBR detectada en tiempo real? Los resultados sugieren que
-sería beneficioso y los parámetros de decisión están bien definidos por los datos
-de este trabajo.
+heterogénea. Tercera: ¿es viable un scheduler adaptativo que cambie entre PF y M-LWDF según la
+fracción de tráfico GBR en tiempo real? No lo sabemos. Los datos sugieren que tendría
+sentido, pero implementarlo en hardware real con latencia de 1~ms por TTI es otro problema.
 
 % =============================================================================
 \section*{Agradecimientos}
