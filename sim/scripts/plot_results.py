@@ -69,7 +69,6 @@ SCHED_COLOR = {
     "mlwdf": "#B47CC7",
     "pss":   "#C4A634",
     "cqa":   "#8B4513",   # categoría iii extensión
-    "tbfq":  "#228B22",   # categoría iii extensión (solo T2)
 }
 SCHED_LABEL = {
     "rr":    "RR",
@@ -80,12 +79,11 @@ SCHED_LABEL = {
     "mlwdf": "M-LWDF",
     "pss":   "PSS",
     "cqa":   "CQA",
-    "tbfq":  "TBFQ",
 }
-# T1: 7 originales + CQA (TBFQ no disponible con T1 full-buffer)
+# 7 originales + CQA (cat iii extensión)
 SCHED_ORDER = ["rr", "bet", "mt", "tta", "pf", "mlwdf", "pss", "cqa"]
-# T2: PF, M-LWDF, PSS, CQA, TBFQ
-QOS_ORDER   = ["pf", "mlwdf", "pss", "cqa", "tbfq"]
+# QoS-aware: PF, M-LWDF, PSS, CQA (TBFQ eliminado — deadlock bajo T1, datos incompletos)
+QOS_ORDER   = ["pf", "mlwdf", "pss", "cqa"]
 N_VALS      = [10, 20, 40]
 
 # ---------------------------------------------------------------------------
@@ -102,8 +100,8 @@ def _phase(traffic: str, scheduler: str = "") -> str:
         # CQA T1 está en phase4_extent_a, los 7 originales en phase2_group_a
         return "phase4_extent_a" if scheduler == "cqa" else "phase2_group_a"
     else:
-        # CQA T2 y TBFQ T2 están en phase4_extent_b, originales en phase3_group_b
-        return "phase4_extent_b" if scheduler in ("cqa", "tbfq") else "phase3_group_b"
+        # CQA T2 está en phase4_extent_b, originales en phase3_group_b
+        return "phase4_extent_b" if scheduler == "cqa" else "phase3_group_b"
 
 
 def row(df: pd.DataFrame, sched: str, n: int,

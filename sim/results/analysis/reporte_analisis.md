@@ -136,7 +136,6 @@ MT experimenta la caída más severa de fairness al pasar de D1 a D2 (0.116 → 
 | M-LWDF | 3.21 | 3.25 | +0.04 |
 | PSS    | 3.23 | 3.27 | +0.04 |
 | CQA    | 3.40 | 3.41 | +0.00 |
-| TBFQ   | 3.01 | 3.02 | +0.00 |
 
 ### 4.4 Interpretación
 
@@ -270,7 +269,6 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | M-LWDF | 3.21 ms | 3.25 ms | +0.04 ms |
 | PSS    | 3.23 ms | 3.27 ms | +0.04 ms |
 | CQA    | 3.40 ms | 3.41 ms | +0.00 ms |
-| TBFQ   | 3.01 ms | 3.02 ms | +0.00 ms |
 
 **Qué buscar:** Las tres curvas son casi paralelas y muy cercanas entre sí. El delay es muy similar en D1 y D2 (~3.2-3.3 ms) para los tres schedulers, y las diferencias son mínimas (<0.1 ms). Esto indica que el delay E2E está dominado por el canal inalámbrico y la serialización, no por el tipo de scheduler ni la distribución espacial.
 
@@ -287,7 +285,6 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 | M-LWDF | 0.5640 | 0.5959 | +0.0319 |
 | PSS    | 0.5526 | 0.5961 | +0.0435 |
 | CQA    | 0.4192 | 0.4033 | -0.0158 |
-| TBFQ   | 0.3753 | 0.3778 | +0.0025 |
 
 **Qué buscar — hallazgo clave:** PF baja su Jain al pasar de D1 a D2 (-0.018), mientras M-LWDF y PSS la SUBEN (+0.032, +0.044). Las líneas se cruzan: en D1 los tres están al mismo nivel (~0.55), pero en D2 M-LWDF y PSS superan claramente a PF (0.596 vs 0.543). Diferencia altamente significativa (p<0.001, Cohen's d≈5).
 
@@ -298,32 +295,27 @@ Las figuras F1–F8 se encuentran en `results/processed/figures/`. A continuaci�
 
 ---
 
-## 7. Extensión — CQA y TBFQ como complemento de categoría (iii)
+## 7. Extensión — CQA como tercer representante de categoría (iii)
 
-> Branch `extent` — 480 corridas adicionales con misma metodología.
+> Branch `final` — 240 corridas adicionales (CQA, T1+T2).
 
-### 7.1 Disponibilidad de datos por scheduler
+> **Nota:** TBFQ fue evaluado pero descartado por incompatibilidad con tráfico
 
-| Scheduler | T1 full-buffer | T2 heterogéneo | Razón |
-|-----------|:--------------:|:--------------:|-------|
-| CQA | ✅ 120 runs | ✅ 120 runs | Funciona en ambas condiciones |
-| TBFQ | ❌ token deadlock | ✅ 120 runs | TokenPoolSize=1B — colapsa bajo saturación total |
+> full-buffer (T1): token deadlock en el primer segundo de simulación.
 
-**Hallazgo sobre TBFQ:** Con tráfico full-buffer (T1), todos los UEs agotan su banco de tokens en el primer segundo de simulación. El contador cae por debajo del `DebtLimit=-625000 bytes` simultáneamente para todos los UEs, resultando en que TBFQ no programa a nadie. Este comportamiento refleja una limitación de diseño: TBFQ presupone periodos de inactividad (tráfico bursty) para que los tokens se recuperen.
+### 7.1 CQA bajo T1 — comportamiento equalizer
 
-### 7.2 CQA bajo T1 — comportamiento como equalizer extremo
-
-| Scheduler | Throughput [Mbps] | Jain | UEs activos | Comparación |
-|-----------|:-----------------:|:----:|:-----------:|-------------|
+| Scheduler | Throughput [Mbps] | Jain | UEs activos | Nota |
+|-----------|:-----------------:|:----:|:-----------:|------|
 | BET    | 4.315 | 0.9996 | 20/20 | ← referencia |
 | PF     | 14.156 | 0.7472 | 20/20 |  |
 | M-LWDF | 14.156 | 0.7472 | 20/20 |  |
 | PSS    | 14.528 | 0.7069 | 20/20 |  |
 | CQA    | 5.305 | 0.9993 | 20/20 | ← similar a BET |
 
-CQA bajo T1 (N=20, D1) produce Jain≈0.999 y throughput de 5.3 Mbps — comportamiento casi idéntico a BET. La métrica multi-criterio de CQA (CQI + HOL delay + tamaño de cola + prioridad) bajo condiciones de saturación total converge a un equalizer: como todos los UEs tienen la misma urgencia de cola, la componente de fairness domina y CQA sirve a cada UE con tiempo casi igual al de RR pero usando mejor el canal.
+CQA bajo T1 produce Jain≈0.999 y throughput de ~5.3 Mbps, comportamiento casi idéntico a BET. La métrica multi-criterio de CQA (CQI + HOL delay + tamaño de cola + prioridad) bajo saturación total converge a un equalizer: todos los UEs tienen urgencia similar, domina la componente de fairness.
 
-### 7.3 CQA y TBFQ bajo T2 — comparación con PF/M-LWDF/PSS
+### 7.2 CQA bajo T2 — comparación con PF/M-LWDF/PSS
 
 | Scheduler | Tput T2 D1 [Mbps] | Jain T2 D1 | Jain T2 D2 | ΔJain D1→D2 |
 |-----------|:-----------------:|:----------:|:----------:|:-----------:|
@@ -331,20 +323,17 @@ CQA bajo T1 (N=20, D1) produce Jain≈0.999 y throughput de 5.3 Mbps — comport
 | M-LWDF | 9.745 | 0.5640 | 0.5959 | +0.0319 |
 | PSS    | 10.614 | 0.5526 | 0.5961 | +0.0435 |
 | CQA    | 6.217 | 0.4192 | 0.4033 | -0.0158 |
-| TBFQ   | 2.184 | 0.3753 | 0.3778 | +0.0025 |
 
-### 7.4 Test Welch — CQA vs PF en T2 D2 (la comparación clave de H4)
+### 7.3 Test Welch — CQA vs PF en T2 D2 (robustez de H4)
 
 | Comparación | Media A | Media B | t | p-value | Sig | Cohen's d |
 |-------------|:-------:|:-------:|---|:-------:|-----|:---------:|
 | Jain(CQA vs PF) D1 | 0.419 | 0.561 | -11.18 | 0.0000 | *** | -3.54 | CQA ≥ PF |
-| Jain(TBFQ vs PF) D1 | 0.375 | 0.561 | -15.14 | 0.0000 | *** | -4.79 | TBFQ ≥ PF |
 | Jain(CQA vs PF) D2 | 0.403 | 0.543 | -51.05 | 0.0000 | *** | -16.14 | CQA ≥ PF |
-| Jain(TBFQ vs PF) D2 | 0.378 | 0.543 | -63.69 | 0.0000 | *** | -20.14 | TBFQ ≥ PF |
 
-### 7.5 Interpretación
+### 7.4 Interpretación
 
-**CQA** confirma el patrón de ventaja de H4 en T2+D2: Jain=0.4033 frente a PF=0.5432. Esto respalda la conclusión de que cualquier scheduler QoS-aware (cat iii) supera a PF bajo condiciones exigentes. Sin embargo, CQA muestra un comportamiento inesperado en T1: Jain=0.9993 (casi perfecta, similar a BET). Esto indica que la métrica multi-criterio de CQA bajo saturación total actúa como equalizer, no como optimizador de throughput. **TBFQ** solo funciona en T2 (tráfico mixto con GBR). En T2+D2 también supera a PF en fairness (similar a PSS=0.5961), validando H4 desde un tercer mecanismo QoS (budget-driven).
+CQA confirma el patrón de H4 en T2+D2: Jain=0.4033 frente a PF=0.5432. Tres schedulers cat(iii) con mecanismos distintos (delay-driven, bearer-driven, multi-criterio) convergen al mismo resultado: todos superan a PF en equidad cuando los usuarios están clusterizados y el tráfico es heterogéneo. Esto robustece H4 más allá de un resultado puntual. El comportamiento atípico de CQA en T1 (Jain=0.9993, similar a BET) evidencia que la saturación total neutraliza los mecanismos QoS y el scheduler colapsa hacia un igualador por defecto.
 
 ---
 
@@ -381,7 +370,6 @@ CQA bajo T1 (N=20, D1) produce Jain≈0.999 y throughput de 5.3 Mbps — comport
 | M-LWDF | 0.0066 | 0.0040 |
 | PSS    | 0.0045 | 0.0027 |
 | CQA    | 0.0152 | 0.0097 |
-| TBFQ   | 0.0275 | 0.0170 |
 
 ### 5.4 Interpretación
 

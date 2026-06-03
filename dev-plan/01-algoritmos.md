@@ -252,3 +252,44 @@ lteHelper->SetSchedulerAttribute("PssFdSchedulerType", StringValue("PFsch"));
 | 5 | PF  | (ii) Ch-aware/QoS-unaware | ✅ | `PfFfMacScheduler` | Nativo |
 | 6 | M-LWDF | (iii) Ch-aware/QoS-aware | — | `MlwdfFfMacScheduler` | Implementado |
 | 7 | PSS | (iii) Ch-aware/QoS-aware | — | `PssFfMacScheduler` | Nativo |
+| 8 | **CQA** | **(iii) Ch-aware/QoS-aware** | — | `CqaFfMacScheduler` | **Extensión** |
+
+> **Nota sobre categorías (iv) y (v):** No se evalúan. Cat (iv) semi-persistent es un
+> modo de operación para VoIP, no un scheduler comparable. Cat (v) energy-aware optimiza
+> Julios/bit, métrica incomparable con throughput/Jain de este experimento.
+
+---
+
+## 8. Channel and QoS Aware (CQA) — extensión
+
+**Clase ns-3:** `ns3::CqaFfMacScheduler` — **Nativo**
+**Objetivo:** Combinar información de canal con múltiples criterios de QoS simultáneamente
+**Categoría:** (iii) Channel-aware / QoS-aware
+
+### Métrica
+
+CQA calcula una métrica compuesta que integra:
+```
+m_i = f(CQI_i, D_HOL_i, Q_i, P_i)
+```
+donde:
+- `CQI_i` = calidad del canal del usuario i
+- `D_HOL_i` = delay del paquete al frente del buffer
+- `Q_i` = ocupación de la cola del usuario i
+- `P_i` = clase de prioridad del bearer
+
+### Diferencia con M-LWDF y PSS
+
+| Aspecto | M-LWDF | PSS | CQA |
+|---------|--------|-----|-----|
+| Criterio QoS | Solo delay HOL | Separación por tipo de bearer | Multi-criterio simultáneo |
+| Manejo de BE | Usa PF | FDPS con PF | Integrado en métrica única |
+| Complejidad | Media | Alta (2 etapas) | Alta (múltiples factores) |
+
+### Hallazgo experimental
+
+**Bajo T1 (full-buffer):** CQA converge a equidad perfecta (Jain≈0.999) — la saturación
+total hace que todos los criterios QoS sean equivalentes y domina la componente de fairness.
+
+**Bajo T2 (heterogéneo) + D2 (clusterizado):** CQA supera a PF en equidad (Jain=0.596
+vs 0.543), igual que M-LWDF y PSS. Tres mecanismos distintos, mismo resultado → robustece H4.

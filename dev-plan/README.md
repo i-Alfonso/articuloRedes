@@ -4,16 +4,18 @@
 
 | Archivo | Contenido |
 |---------|-----------|
-| [01-algoritmos.md](01-algoritmos.md) | Especificación técnica de los 7 algoritmos, fórmulas de métrica e implementación en ns-3 |
+| [01-algoritmos.md](01-algoritmos.md) | Especificación técnica de los 7+1 algoritmos, fórmulas de métrica e implementación en ns-3 |
 | [02-metricas-ns3.md](02-metricas-ns3.md) | Cómo capturar throughput, delay y Jain index en ns-3 con el módulo LTE |
 | [03-escenarios.md](03-escenarios.md) | Matriz experimental completa: escenarios, variables y configuración de ns-3 |
 | [04-plan-pruebas.md](04-plan-pruebas.md) | Plan de ejecución, automatización, análisis estadístico y estructura de resultados |
+| [05-extension-cqa.md](05-extension-cqa.md) | Extensión con CQA (cat iii, 240 corridas) — TBFQ evaluado pero descartado |
 
 ---
 
 ## Resumen ejecutivo
 
-**Objetivo:** Evaluar 7 paradigmas de scheduling en sistemas OFDMA (LTE como entorno controlado) bajo heterogeneidad espacial y de tráfico para responder 4 hipótesis de investigación.
+**Objetivo:** Evaluar 8 paradigmas de scheduling (7 originales + CQA como extensión de cat iii)
+en sistemas OFDMA bajo heterogeneidad espacial y de tráfico para responder 4 hipótesis.
 
 **Stack tecnológico:**
 - Simulador: **ns-3.47** con módulo LTE/EPC (en `sim/ns-3.47/`)
@@ -23,6 +25,8 @@
 **Volumen de simulaciones:**
 ```
 7 algoritmos × 2 spatial × 3 nUEs × 2 traffic × 20 corridas = 1,680 simulaciones
++ CQA (cat iii extensión)  × 2 spatial × 3 nUEs × 2 traffic × 20 corridas = 240 simulaciones
+Total: 1,920 simulaciones válidas
 ```
 Tiempo real observado: ~4.5 horas con 8 núcleos (~75 s/run con fading EPA activo).
 

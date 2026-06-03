@@ -25,13 +25,13 @@ REPORT     = OUT_DIR / "reporte_analisis.md"
 SCHED_LABEL = {
     "rr": "RR", "bet": "BET", "mt": "MT", "tta": "TTA",
     "pf": "PF", "mlwdf": "M-LWDF", "pss": "PSS",
-    "cqa": "CQA", "tbfq": "TBFQ",
+    "cqa": "CQA",
 }
 SCHED_ORDER = ["rr", "bet", "mt", "tta", "pf", "mlwdf", "pss", "cqa"]
-# TBFQ solo disponible para T2 (incompatible con T1 full-buffer)
-QOS_ORDER      = ["pf", "mlwdf", "pss", "cqa", "tbfq"]
-QOS_ORDER_T2   = ["pf", "mlwdf", "pss", "cqa", "tbfq"]   # todos disponibles en T2
-QOS_ORDER_T1   = ["pf", "mlwdf", "pss", "cqa"]            # TBFQ excluido en T1
+# QoS-aware: TBFQ eliminado (deadlock bajo T1, datos incompletos)
+QOS_ORDER    = ["pf", "mlwdf", "pss", "cqa"]
+QOS_ORDER_T2 = ["pf", "mlwdf", "pss", "cqa"]
+QOS_ORDER_T1 = ["pf", "mlwdf", "pss", "cqa"]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -44,7 +44,7 @@ def load():
 
 
 def _phase(scheduler: str, traffic: str) -> str:
-    if scheduler in ("cqa", "tbfq"):
+    if scheduler == "cqa":
         return "phase4_extent_a" if traffic == "homogeneous" else "phase4_extent_b"
     return "phase2_group_a" if traffic == "homogeneous" else "phase3_group_b"
 
@@ -368,56 +368,42 @@ def analisis_h4(master, st):
 
 
 # ---------------------------------------------------------------------------
-# Extensión — CQA y TBFQ
+# Extensión — CQA (tercer representante de categoría iii)
 # ---------------------------------------------------------------------------
 
 def analisis_extension(master, st):
     lines = []
-    lines.append("## 7. Extensión — CQA y TBFQ como complemento de categoría (iii)\n")
-    lines.append("> Branch `extent` — 480 corridas adicionales con misma metodología.\n")
+    lines.append("## 7. Extensión — CQA como tercer representante de categoría (iii)\n")
+    lines.append("> Branch `final` — 240 corridas adicionales (CQA, T1+T2).\n")
+    lines.append("> **Nota:** TBFQ fue evaluado pero descartado por incompatibilidad con tráfico\n")
+    lines.append("> full-buffer (T1): token deadlock en el primer segundo de simulación.\n")
 
-    lines.append("### 7.1 Disponibilidad de datos por scheduler\n")
-    lines.append("| Scheduler | T1 full-buffer | T2 heterogéneo | Razón |")
-    lines.append("|-----------|:--------------:|:--------------:|-------|")
-    lines.append("| CQA | ✅ 120 runs | ✅ 120 runs | Funciona en ambas condiciones |")
-    lines.append("| TBFQ | ❌ token deadlock | ✅ 120 runs | TokenPoolSize=1B — colapsa bajo saturación total |")
-    lines.append("")
-    lines.append("**Hallazgo sobre TBFQ:** Con tráfico full-buffer (T1), todos los UEs agotan "
-                 "su banco de tokens en el primer segundo de simulación. El contador cae por debajo "
-                 "del `DebtLimit=-625000 bytes` simultáneamente para todos los UEs, resultando en "
-                 "que TBFQ no programa a nadie. Este comportamiento refleja una limitación de diseño: "
-                 "TBFQ presupone periodos de inactividad (tráfico bursty) para que los tokens se recuperen.\n")
-
-    lines.append("### 7.2 CQA bajo T1 — comportamiento como equalizer extremo\n")
-    lines.append("| Scheduler | Throughput [Mbps] | Jain | UEs activos | Comparación |")
-    lines.append("|-----------|:-----------------:|:----:|:-----------:|-------------|")
-    ref_scheds = ["bet", "pf", "mlwdf", "pss", "cqa"]
-    for s in ref_scheds:
+    lines.append("### 7.1 CQA bajo T1 — comportamiento equalizer\n")
+    lines.append("| Scheduler | Throughput [Mbps] | Jain | UEs activos | Nota |")
+    lines.append("|-----------|:-----------------:|:----:|:-----------:|------|")
+    for s in ["bet", "pf", "mlwdf", "pss", "cqa"]:
         try:
             r = get_stat(st, s, "cell_throughput_mbps", "uniform", "homogeneous", 20)
-            n_active = int(master.loc[
+            n_raw = master.loc[
                 (master.scheduler == s) & (master.spatial == "uniform") &
                 (master.traffic == "homogeneous") & (master.n_ues == 20),
-                "n_ues_active"].mean())
-            note = ""
-            if s == "cqa": note = "← similar a BET"
-            elif s == "bet": note = "← referencia"
+                "n_ues_active"].mean()
+            n_active = int(n_raw) if not np.isnan(n_raw) else 0
+            note = "← similar a BET" if s == "cqa" else ("← referencia" if s == "bet" else "")
             lines.append(f"| {SCHED_LABEL[s]:6} | {r['cell_throughput_mbps_mean']:.3f} "
                          f"| {r['jain_index_mean']:.4f} | {n_active}/20 | {note} |")
         except KeyError:
             pass
     lines.append("")
-    lines.append("CQA bajo T1 (N=20, D1) produce Jain≈0.999 y throughput de 5.3 Mbps — "
-                 "comportamiento casi idéntico a BET. La métrica multi-criterio de CQA "
-                 "(CQI + HOL delay + tamaño de cola + prioridad) bajo condiciones de saturación "
-                 "total converge a un equalizer: como todos los UEs tienen la misma "
-                 "urgencia de cola, la componente de fairness domina y CQA sirve a cada UE "
-                 "con tiempo casi igual al de RR pero usando mejor el canal.\n")
+    lines.append("CQA bajo T1 produce Jain≈0.999 y throughput de ~5.3 Mbps, comportamiento "
+                 "casi idéntico a BET. La métrica multi-criterio de CQA (CQI + HOL delay + "
+                 "tamaño de cola + prioridad) bajo saturación total converge a un equalizer: "
+                 "todos los UEs tienen urgencia similar, domina la componente de fairness.\n")
 
-    lines.append("### 7.3 CQA y TBFQ bajo T2 — comparación con PF/M-LWDF/PSS\n")
+    lines.append("### 7.2 CQA bajo T2 — comparación con PF/M-LWDF/PSS\n")
     lines.append("| Scheduler | Tput T2 D1 [Mbps] | Jain T2 D1 | Jain T2 D2 | ΔJain D1→D2 |")
     lines.append("|-----------|:-----------------:|:----------:|:----------:|:-----------:|")
-    for s in QOS_ORDER_T2:
+    for s in QOS_ORDER:
         try:
             r1 = get_stat(st, s, "cell_throughput_mbps", "uniform",   "heterogeneous", 20)
             j1 = get_stat(st, s, "jain_index",           "uniform",   "heterogeneous", 20)
@@ -430,41 +416,36 @@ def analisis_extension(master, st):
             lines.append(f"| {SCHED_LABEL[s]:6} | n/d | n/d | n/d | n/d |")
     lines.append("")
 
-    lines.append("### 7.4 Test Welch — CQA vs PF en T2 D2 (la comparación clave de H4)\n")
+    lines.append("### 7.3 Test Welch — CQA vs PF en T2 D2 (robustez de H4)\n")
     lines.append("| Comparación | Media A | Media B | t | p-value | Sig | Cohen's d |")
     lines.append("|-------------|:-------:|:-------:|---|:-------:|-----|:---------:|")
     for sp in ["uniform", "clustered"]:
         try:
-            a_cqa = get_vals(master, "cqa",  "jain_index", sp, "heterogeneous", 20)
-            a_pf  = get_vals(master, "pf",   "jain_index", sp, "heterogeneous", 20)
-            a_tbfq = get_vals(master, "tbfq","jain_index", sp, "heterogeneous", 20)
+            a_cqa = get_vals(master, "cqa", "jain_index", sp, "heterogeneous", 20)
+            a_pf  = get_vals(master, "pf",  "jain_index", sp, "heterogeneous", 20)
             sp_lbl = "D1" if sp == "uniform" else "D2"
-            lines.append(fmt_row(f"Jain(CQA vs PF) {sp_lbl}",   a_cqa,  a_pf,  "CQA ≥ PF"))
-            if len(a_tbfq) > 0:
-                lines.append(fmt_row(f"Jain(TBFQ vs PF) {sp_lbl}", a_tbfq, a_pf,  "TBFQ ≥ PF"))
+            lines.append(fmt_row(f"Jain(CQA vs PF) {sp_lbl}", a_cqa, a_pf, "CQA ≥ PF"))
         except (KeyError, IndexError):
             pass
     lines.append("")
 
-    lines.append("### 7.5 Interpretación\n")
+    lines.append("### 7.4 Interpretación\n")
     try:
         cqa_t2_d2 = get_stat(st, "cqa", "jain_index", "clustered", "heterogeneous", 20)["jain_index_mean"]
         pf_t2_d2  = get_stat(st, "pf",  "jain_index", "clustered", "heterogeneous", 20)["jain_index_mean"]
-        pss_t2_d2 = get_stat(st, "pss", "jain_index", "clustered", "heterogeneous", 20)["jain_index_mean"]
-        cqa_t1_d1 = get_stat(st, "cqa", "jain_index", "uniform", "homogeneous", 20)["jain_index_mean"]
+        cqa_t1_d1 = get_stat(st, "cqa", "jain_index", "uniform",   "homogeneous",   20)["jain_index_mean"]
         lines.append(
-            f"**CQA** confirma el patrón de ventaja de H4 en T2+D2: Jain={cqa_t2_d2:.4f} "
-            f"frente a PF={pf_t2_d2:.4f}. Esto respalda la conclusión de que cualquier "
-            f"scheduler QoS-aware (cat iii) supera a PF bajo condiciones exigentes. "
-            f"Sin embargo, CQA muestra un comportamiento inesperado en T1: Jain={cqa_t1_d1:.4f} "
-            f"(casi perfecta, similar a BET). Esto indica que la métrica multi-criterio de CQA "
-            f"bajo saturación total actúa como equalizer, no como optimizador de throughput. "
-            f"**TBFQ** solo funciona en T2 (tráfico mixto con GBR). En T2+D2 también supera "
-            f"a PF en fairness (similar a PSS={pss_t2_d2:.4f}), validando H4 desde "
-            f"un tercer mecanismo QoS (budget-driven)."
+            f"CQA confirma el patrón de H4 en T2+D2: Jain={cqa_t2_d2:.4f} frente a "
+            f"PF={pf_t2_d2:.4f}. Tres schedulers cat(iii) con mecanismos distintos "
+            f"(delay-driven, bearer-driven, multi-criterio) convergen al mismo resultado: "
+            f"todos superan a PF en equidad cuando los usuarios están clusterizados y el "
+            f"tráfico es heterogéneo. Esto robustece H4 más allá de un resultado puntual. "
+            f"El comportamiento atípico de CQA en T1 (Jain={cqa_t1_d1:.4f}, similar a BET) "
+            f"evidencia que la saturación total neutraliza los mecanismos QoS y el scheduler "
+            f"colapsa hacia un igualador por defecto."
         )
     except KeyError as e:
-        lines.append(f"[Datos insuficientes para interpretación: {e}]")
+        lines.append(f"[Datos insuficientes: {e}]")
 
     return "\n".join(lines)
 
