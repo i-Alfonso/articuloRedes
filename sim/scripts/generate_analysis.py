@@ -108,7 +108,7 @@ def tabla_resumen(master, st):
     lines.append("|-----------|-----------|:-----------------:|--------|:----:|--------|:-----------:|")
     cat = {"rr":"(i)", "bet":"(i)", "mt":"(ii)", "tta":"(ii)",
            "pf":"(ii)", "mlwdf":"(iii)", "pss":"(iii)",
-           "cqa":"(iii)ext", "tbfq":"(iii)ext"}
+           "cqa":"(iii)ext"}
     for s in SCHED_ORDER:
         r  = get_stat(st, s, "cell_throughput_mbps", "uniform", "homogeneous", 20)
         ph = _phase(s, "homogeneous")
